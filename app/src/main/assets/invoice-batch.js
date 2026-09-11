@@ -1,10 +1,10 @@
 (() => {
   'use strict';
   if (location.origin !== 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev') return;
-  document.title = document.title.replace(/Second Service/gi, 'Venue Margin');
+  document.title = document.title.replace(/Second Service/gi, 'Price 2 Plate').replace(/Venue Margin/gi, 'Price 2 Plate');
   document.querySelectorAll('.logo').forEach(logo => {
     for (const node of logo.childNodes) {
-      if (node.nodeType === 3) node.textContent = node.textContent.replace(/SECOND SERVICE/gi, 'VENUE MARGIN');
+      if (node.nodeType === 3) node.textContent = node.textContent.replace(/SECOND SERVICE/gi, 'PRICE 2 PLATE').replace(/VENUE MARGIN/gi, 'PRICE 2 PLATE');
     }
   });
   const input = document.getElementById('invoiceFile');

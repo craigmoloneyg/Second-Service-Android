@@ -114,7 +114,7 @@ test('installation is idempotent and never modifies an external origin', () => {
   s.w.eval(script);
   assert.equal(s.w.document.querySelectorAll('button').length, 2);
   assert.equal(s.input.multiple, true);
-  assert.match(s.w.document.querySelector('.logo').textContent, /VENUE MARGIN/);
+  assert.match(s.w.document.querySelector('.logo').textContent, /PRICE 2 PLATE/);
   s.dom.window.close();
   const outside = setup(1, 'https://example.com/');
   assert.equal(outside.input.multiple, false);

@@ -33,13 +33,13 @@ jobs:
       - name: Name APK and record checksum
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Venue-Margin-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Price-2-Plate-debug.apk
           cd dist
-          sha256sum Venue-Margin-debug.apk > SHA256SUMS.txt
+          sha256sum Price-2-Plate-debug.apk > SHA256SUMS.txt
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Venue-Margin-debug-APK
+          name: Price-2-Plate-debug-APK
           path: dist/
           if-no-files-found: error
           retention-days: 30

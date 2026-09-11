@@ -1,13 +1,13 @@
-# Venue Margin Android
+# Price 2 Plate Android
 
-Venue Margin is the Android app for the existing restaurant profit intelligence service:
+Price 2 Plate is the Android app for the existing restaurant profit intelligence service:
 https://second-service-profit-intelligence.craig-moloneyg.workers.dev/
 
-The live app remains the UI and backend. The Android app adds a small, origin-restricted UI enhancement for batch invoice uploads and the Venue Margin name. Website updates appear without rebuilding; the enhancement depends on the existing invoice form IDs and extraction API and must be reviewed if those change. The launcher uses a navy and gold plate-and-chart icon with no initials. The original repository, package ID, and backend URL remain stable for app continuity. The standalone website has not been renamed or changed by this project.
+The live app remains the UI and backend. The Android app adds a small, origin-restricted UI enhancement for batch invoice uploads and the Price 2 Plate name. Website updates appear without rebuilding; the enhancement depends on the existing invoice form IDs and extraction API and must be reviewed if those change. The launcher uses a navy and gold plate-and-chart icon with no initials. The original repository, package ID, and backend URL remain stable for app continuity. The standalone website has not been renamed or changed by this project.
 
 ## Install
 
-Open this repository's Actions tab, select the latest successful **Build Android APK** run, and download **Venue-Margin-debug-APK** under Artifacts. Sign in to GitHub if prompted. Extract the ZIP, transfer `Venue-Margin-debug.apk` to an Android 10 or later device, and open it. Allow installation from that source when Android prompts. This is a debug APK for direct installation, not a Play Store release. Separate CI runs may use different debug signing keys, requiring uninstall before installing another build; uninstalling clears local session data.
+Open this repository's Actions tab, select the latest successful **Build Android APK** run, and download **Price-2-Plate-debug-APK** under Artifacts. Sign in to GitHub if prompted. Extract the ZIP, transfer `Price-2-Plate-debug.apk` to an Android 10 or later device, and open it. Allow installation from that source when Android prompts. This is a debug APK for direct installation, not a Play Store release. Separate CI runs may use different debug signing keys, requiring uninstall before installing another build; uninstalling clears local session data.
 
 ## Build
 
@@ -24,7 +24,7 @@ The checked-in Gradle wrapper pins Gradle 8.11.1. Pushes, pull requests and manu
 
 ## Features and boundaries
 
-- Same live responsive navy-and-gold UI, JavaScript, local storage and persistent first-party cookies, with the Venue Margin label inside Android.
+- Same live responsive navy-and-gold UI, JavaScript, local storage and persistent first-party cookies, with the Price 2 Plate label inside Android.
 - Select 1–50 PDF, PNG, JPEG, or WebP invoices using the Android document picker; no broad storage or camera permission. Selections above 50 are rejected, never silently truncated.
 - A sequential upload queue uses the existing extraction endpoint, shows per-file results and progress, and continues after individual failures. Stop finishes the current request and leaves remaining files unsent. Failed or uncertain results are never automatically retried; check purchasing history before resubmitting to avoid duplicates.
 - Keep the batch screen open. Rotation preserves the running WebView, and Back/page links are blocked while the batch runs. Force closing the app or OS process termination does not resume a batch automatically.
