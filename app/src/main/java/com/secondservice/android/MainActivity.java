@@ -27,6 +27,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 
 public final class MainActivity extends Activity {
     private static final int PICK_FILE = 100;
@@ -62,7 +66,7 @@ public final class MainActivity extends Activity {
         errorPanel.setOrientation(LinearLayout.VERTICAL);
         errorPanel.setPadding(32, 48, 32, 32);
         TextView message = new TextView(this);
-        message.setText("Second Service couldn't load this page. Check your connection and try again.");
+        message.setText(getString(R.string.load_error));
         message.setTextColor(Color.WHITE);
         errorPanel.addView(message);
         Button retry = new Button(this);
@@ -103,6 +107,7 @@ public final class MainActivity extends Activity {
                 progress.setVisibility(View.GONE);
                 CookieManager.getInstance().flush();
                 if (pageFailed) showError();
+                else if (NavigationPolicy.isInternal(url)) installAppEnhancements(view);
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) showError();
@@ -119,6 +124,7 @@ public final class MainActivity extends Activity {
                 try {
                     Intent picker = params.createIntent();
                     picker.addCategory(Intent.CATEGORY_OPENABLE);
+                    picker.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
                     startActivityForResult(picker, PICK_FILE);
                 } catch (ActivityNotFoundException e) {
                     fileCallback.onReceiveValue(null);
@@ -171,11 +177,17 @@ public final class MainActivity extends Activity {
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_FILE && fileCallback != null) {
-            Uri[] picked = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
-            ArrayList<Uri> safe = new ArrayList<>();
-            if (picked != null) for (Uri uri : picked) {
-                if ("content".equals(uri.getScheme()) && !getPackageName().equals(uri.getAuthority())) safe.add(uri);
+            ArrayList<Uri> picked = new ArrayList<>();
+            if (resultCode == RESULT_OK && data != null) {
+                if (data.getClipData() != null) {
+                    for (int i = 0; i < data.getClipData().getItemCount(); i++) picked.add(data.getClipData().getItemAt(i).getUri());
+                } else if (data.getData() != null) picked.add(data.getData());
             }
+            ArrayList<Uri> safe = new ArrayList<>();
+            for (Uri uri : picked) {
+                if (uri != null && "content".equals(uri.getScheme()) && !getPackageName().equals(uri.getAuthority()) && !safe.contains(uri)) safe.add(uri);
+            }
+            if (safe.size() > 50) { safe.clear(); toast("Select up to 50 invoices at a time. Please choose again."); }
             fileCallback.onReceiveValue(safe.isEmpty() ? null : safe.toArray(new Uri[0]));
             fileCallback = null;
         }
@@ -186,7 +198,20 @@ public final class MainActivity extends Activity {
         super.onSaveInstanceState(state);
     }
     @Override public void onBackPressed() {
-        if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+        web.evaluateJavascript("Boolean(window.invoiceBatchState && window.invoiceBatchState.running)", running -> {
+            if ("true".equals(running)) toast("Wait for this batch, or use Stop after current invoice before leaving.");
+            else navigateBack();
+        });
+    }
+    private void navigateBack() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    private void installAppEnhancements(WebView view) {
+        try (InputStream script = getAssets().open("invoice-batch.js")) {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int count;
+            while ((count = script.read(buffer)) != -1) bytes.write(buffer, 0, count);
+            view.evaluateJavascript(bytes.toString(StandardCharsets.UTF_8.name()), null);
+        } catch (IOException e) { toast("The batch upload screen could not load. Please reopen the app."); }
     }
     @Override protected void onPause() {
         web.onPause();

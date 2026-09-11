@@ -1,13 +1,13 @@
-# Second Service Android
+# Venue Margin Android
 
-Android WebView container for the existing Second Service Profit Intelligence app:
+Venue Margin is the Android app for the existing restaurant profit intelligence service:
 https://second-service-profit-intelligence.craig-moloneyg.workers.dev/
 
-The live app remains the UI and backend. No website code or business data is copied into the APK. Website updates appear in the app without rebuilding. The launcher uses a navy and gold SS monogram because the website manifest does not supply an icon.
+The live app remains the UI and backend. The Android app adds a small, origin-restricted UI enhancement for batch invoice uploads and the Venue Margin name. Website updates appear without rebuilding; the enhancement depends on the existing invoice form IDs and extraction API and must be reviewed if those change. The launcher uses a navy and gold plate-and-chart icon with no initials. The original repository, package ID, and backend URL remain stable for app continuity. The standalone website has not been renamed or changed by this project.
 
 ## Install
 
-Open this repository's Actions tab, select the latest successful **Build Android APK** run, and download **Second-Service-debug-APK** under Artifacts. Sign in to GitHub if prompted. Extract the ZIP, transfer `Second-Service-debug.apk` to an Android 10 or later device, and open it. Allow installation from that source when Android prompts. This is a debug APK for direct installation, not a Play Store release. Separate CI runs may use different debug signing keys, requiring uninstall before installing another build; uninstalling clears local session data.
+Open this repository's Actions tab, select the latest successful **Build Android APK** run, and download **Venue-Margin-debug-APK** under Artifacts. Sign in to GitHub if prompted. Extract the ZIP, transfer `Venue-Margin-debug.apk` to an Android 10 or later device, and open it. Allow installation from that source when Android prompts. This is a debug APK for direct installation, not a Play Store release. Separate CI runs may use different debug signing keys, requiring uninstall before installing another build; uninstalling clears local session data.
 
 ## Build
 
@@ -15,6 +15,8 @@ Use JDK 17 and Android SDK platform 35 / build tools 35.0.0. Set `ANDROID_HOME` 
 
 ```sh
 ./gradlew testDebugUnitTest lintDebug assembleDebug
+npm ci
+npm test
 ```
 
 On Windows use `gradlew.bat`. Output: `app/build/outputs/apk/debug/app-debug.apk`.
@@ -22,8 +24,10 @@ The checked-in Gradle wrapper pins Gradle 8.11.1. Pushes, pull requests and manu
 
 ## Features and boundaries
 
-- Same live responsive navy-and-gold UI, JavaScript, local storage and persistent first-party cookies.
-- Invoice upload using the Android document picker; no broad storage or camera permission.
+- Same live responsive navy-and-gold UI, JavaScript, local storage and persistent first-party cookies, with the Venue Margin label inside Android.
+- Select 1–50 PDF, PNG, JPEG, or WebP invoices using the Android document picker; no broad storage or camera permission. Selections above 50 are rejected, never silently truncated.
+- A sequential upload queue uses the existing extraction endpoint, shows per-file results and progress, and continues after individual failures. Stop finishes the current request and leaves remaining files unsent. Failed or uncertain results are never automatically retried; check purchasing history before resubmitting to avoid duplicates.
+- Keep the batch screen open. Rotation preserves the running WebView, and Back/page links are blocked while the batch runs. Force closing the app or OS process termination does not resume a batch automatically.
 - Android Back navigates web history; page state is restored after activity recreation.
 - Loading indicator, network/server error message and retry.
 - Same-origin HTTPS stays in the app; external web, phone and email links use other apps.
@@ -33,4 +37,4 @@ The checked-in Gradle wrapper pins Gradle 8.11.1. Pushes, pull requests and manu
 
 ## Device smoke test
 
-Install on a device and verify loading, invoice PDF/image selection and extraction, ingredient/recipe views, Back navigation, rotation, external links, and offline/retry behavior. Do not create or delete real business records just to test the wrapper. Unit tests exercise origin filtering; CI runs Android lint and compiles the APK. Successful CI is not a substitute for this device test.
+Install on a device and verify loading, selection of multiple invoice PDFs/images, extraction, the 50-file limit, ingredient/recipe views, Back navigation, rotation, external links, and offline/retry behavior. Do not create or delete real business records just to test the wrapper. Unit tests exercise origin filtering; browser DOM tests cover 50-file batching, limit rejection, failures, stopping, safe result rendering and repeat-click prevention with simulated responses. CI runs these tests, Android lint and APK compilation. Successful CI is not a substitute for this device test.

@@ -14,6 +14,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Test batch invoice uploads
+        run: npm ci && npm test
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -27,13 +33,13 @@ jobs:
       - name: Name APK and record checksum
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/Second-Service-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Venue-Margin-debug.apk
           cd dist
-          sha256sum Second-Service-debug.apk > SHA256SUMS.txt
+          sha256sum Venue-Margin-debug.apk > SHA256SUMS.txt
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Second-Service-debug-APK
+          name: Venue-Margin-debug-APK
           path: dist/
           if-no-files-found: error
           retention-days: 30
