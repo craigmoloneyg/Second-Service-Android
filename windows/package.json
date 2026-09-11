@@ -1,0 +1,35 @@
+{
+  "name": "price-2-plate-windows",
+  "version": "1.0.0",
+  "description": "Price 2 Plate desktop app",
+  "private": true,
+  "main": "main.js",
+  "author": "Price 2 Plate",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "38.1.0",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "com.secondservice.price2plate",
+    "productName": "Price 2 Plate",
+    "artifactName": "Price-2-Plate-Setup-${version}.${ext}",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "logo.svg"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "artifactName": "Price-2-Plate-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Price 2 Plate"
+    }
+  }
+}
