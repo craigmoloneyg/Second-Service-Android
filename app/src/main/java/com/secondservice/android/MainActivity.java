@@ -46,7 +46,7 @@ public final class MainActivity extends Activity {
         super.onCreate(savedState);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(7, 17, 30));
+        root.setBackgroundColor(Color.rgb(245, 243, 236));
         if (android.os.Build.VERSION.SDK_INT >= 30) root.setOnApplyWindowInsetsListener((view, insets) -> {
             android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
@@ -67,7 +67,7 @@ public final class MainActivity extends Activity {
         errorPanel.setPadding(32, 48, 32, 32);
         TextView message = new TextView(this);
         message.setText(getString(R.string.load_error));
-        message.setTextColor(Color.WHITE);
+        message.setTextColor(Color.rgb(32, 56, 47));
         errorPanel.addView(message);
         Button retry = new Button(this);
         retry.setText("Try again");
@@ -76,7 +76,7 @@ public final class MainActivity extends Activity {
         errorPanel.setVisibility(View.GONE);
         root.addView(errorPanel);
         web = new WebView(this);
-        web.setBackgroundColor(Color.rgb(7, 17, 30));
+        web.setBackgroundColor(Color.rgb(245, 243, 236));
         root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(root);
         WebSettings settings = web.getSettings();
@@ -205,6 +205,7 @@ public final class MainActivity extends Activity {
     }
     private void navigateBack() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
     private void installAppEnhancements(WebView view) {
+        installWelcome(view);
         try (InputStream script = getAssets().open("invoice-batch.js")) {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             byte[] buffer = new byte[4096];
@@ -212,6 +213,15 @@ public final class MainActivity extends Activity {
             while ((count = script.read(buffer)) != -1) bytes.write(buffer, 0, count);
             view.evaluateJavascript(bytes.toString(StandardCharsets.UTF_8.name()), null);
         } catch (IOException e) { toast("The batch upload screen could not load. Please reopen the app."); }
+    }
+    private void installWelcome(WebView view) {
+        try (InputStream script = getAssets().open("welcome.js")) {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int count;
+            while ((count = script.read(buffer)) != -1) bytes.write(buffer, 0, count);
+            view.evaluateJavascript(bytes.toString(StandardCharsets.UTF_8.name()), null);
+        } catch (IOException e) { toast("The welcome page could not load. Please reopen the app."); }
     }
     @Override protected void onPause() {
         web.onPause();

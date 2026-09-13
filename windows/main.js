@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell, session } = require('electron');
 const path = require('node:path');
+const fs = require('node:fs');
 
 const HOME = 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev/';
 const HOST = new URL(HOME).hostname;
@@ -25,7 +26,7 @@ function createWindow() {
     minWidth: 960,
     minHeight: 640,
     title: 'Price 2 Plate',
-    backgroundColor: '#07111e',
+    backgroundColor: '#f5f3ec',
     icon: path.join(__dirname, 'logo.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -39,6 +40,12 @@ function createWindow() {
   });
 
   const ses = win.webContents.session;
+  win.webContents.on('did-finish-load', () => {
+    if (!isInternal(win.webContents.getURL())) return;
+    const assetDir = app.isPackaged ? path.join(process.resourcesPath, 'enhancements') : path.join(__dirname, '../app/src/main/assets');
+    const source = ['invoice-batch.js', 'welcome.js'].map(name => fs.readFileSync(path.join(assetDir, name), 'utf8')).join('\n');
+    win.webContents.executeJavaScript(source).catch(error => console.error('Could not load workspace enhancements:', error.message));
+  });
   ses.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
   ses.setPermissionCheckHandler(() => false);
   win.webContents.setWindowOpenHandler(({ url }) => {

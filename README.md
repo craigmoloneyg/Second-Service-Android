@@ -24,7 +24,8 @@ The checked-in Gradle wrapper pins Gradle 8.11.1. Pushes, pull requests and manu
 
 ## Features and boundaries
 
-- Same live responsive navy-and-gold UI, JavaScript, local storage and persistent first-party cookies, with the Price 2 Plate label inside Android.
+- Cream-and-green welcome page and dashboard styling, with direct navigation to invoices, menu costing and the dashboard. The live business data, JavaScript, local storage and first-party cookies remain in use.
+- Both Android and Windows load the same welcome-page and batch-upload enhancements. This changes the installed apps; the standalone website is not redeployed.
 - Select 1–50 PDF, PNG, JPEG, or WebP invoices using the Android document picker; no broad storage or camera permission. Selections above 50 are rejected, never silently truncated.
 - A sequential upload queue uses the existing extraction endpoint, shows per-file results and progress, and continues after individual failures. Stop finishes the current request and leaves remaining files unsent. Failed or uncertain results are never automatically retried; check purchasing history before resubmitting to avoid duplicates.
 - Keep the batch screen open. Rotation preserves the running WebView, and Back/page links are blocked while the batch runs. Force closing the app or OS process termination does not resume a batch automatically.

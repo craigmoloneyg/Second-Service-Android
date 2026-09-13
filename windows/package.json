@@ -1,6 +1,6 @@
 {
   "name": "price-2-plate-windows",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Price 2 Plate desktop app",
   "private": true,
   "main": "main.js",
@@ -18,6 +18,7 @@
     "productName": "Price 2 Plate",
     "artifactName": "Price-2-Plate-Setup-${version}.${ext}",
     "directories": { "output": "dist" },
+    "extraResources": [{"from":"../app/src/main/assets", "to":"enhancements", "filter":["welcome.js", "invoice-batch.js"]}],
     "files": ["main.js", "preload.js", "logo.svg"],
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
