@@ -39,7 +39,7 @@ const tokenHex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x 
 const b64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
 async function hashPassword(password,salt){ const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveBits"]); const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:120000,hash:"SHA-256"},key,256); return b64(bits); }
 async function authUser(env,cookie){
-  const token=cookie.match(/(?:^|;\\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];
+  const token=cookie.match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(!token||!env.DB) return null;
   const row=await env.DB.prepare("SELECT a.id,a.email,a.workspace_id,s.expires_at FROM p2p_sessions s JOIN p2p_accounts a ON a.id=s.account_id WHERE s.token=?").bind(token).first();
   if(!row||Date.parse(row.expires_at)<=Date.now()) return null;
@@ -50,7 +50,7 @@ async function authApi(request,env,action){
   if(action==="signout") return reply({ok:true},200,{"Set-Cookie":"p2p_auth=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0"});
   let body={}; try{body=await request.json();}catch{}
   const email=String(body.email||"").trim().toLowerCase(), password=String(body.password||"");
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return reply({error:"Enter a valid email address."},400);
+  if(!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)) return reply({error:"Enter a valid email address."},400);
   if(password.length<10||password.length>200) return reply({error:"Use a password between 10 and 200 characters."},400);
   if(action==="signup"){
     const existing=await env.DB.prepare("SELECT id FROM p2p_accounts WHERE email=?").bind(email).first();
