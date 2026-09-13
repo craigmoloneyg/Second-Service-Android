@@ -97,7 +97,6 @@
   if (labourHost) { const button = document.createElement('button'); button.className='btn primary'; button.type='button'; button.textContent='Find labour savings'; button.addEventListener('click', () => ask(labourHost, 'labour', 'Identify labour-saving methods while maintaining service, safety and Australian employment obligations.', labourHost.innerText.slice(0, 7000))); labourHost.querySelector('.card-head')?.append(button) || labourHost.prepend(button); }
 })();
 
-
  
 // Price 2 Plate action-plan control: turns the dashboard action into a visible, usable result.
 (() => {
@@ -125,7 +124,7 @@
     button.disabled = true;
     button.textContent = 'Building plan…';
     panel.hidden = false;
-    panel.innerHTML = '<div class="card-head"><div><h2>Action plan</h2><div class="muted">A practical plan built from the current venue evidence.</div></div><span class="pill orange">Draft</span></div><div class="plan">' +
+    panel.innerHTML = '<div class="card-head"><div><h2>Action plan</h2><div class="muted">A general recovery checklist. Validate it against your workspace records.</div></div><span class="pill orange">Draft</span></div><div class="plan">' +
       steps.map((step) => '<div class="plan-step"><strong>' + escape(step[0]) + '</strong><p>' + escape(step[1]) + '</p></div>').join('') +
       '</div><p class="muted" id="p2p-plan-status" style="margin:14px 0 0">Preparing your saved plan…</p>';
     panel.scrollIntoView({behavior:'smooth', block:'start'});
@@ -136,6 +135,7 @@
         body: JSON.stringify({
           title: 'Price 2 Plate profit recovery plan',
           focus: 'food cost, labour alignment, purchasing controls and menu margin',
+          steps: steps.map(([title,detail])=>({title,detail})),
           evidence: (main.innerText || '').slice(0, 9000)
         })
       });
@@ -146,7 +146,7 @@
       panel.querySelector('.pill').textContent = data.saved === false ? 'Ready' : 'Saved';
     } catch (error) {
       const status = document.getElementById('p2p-plan-status');
-      if (status) status.textContent = 'Plan is ready to use. Saving will retry when the connection is available.';
+      if (status) status.textContent = 'Plan is ready to use. Press Create action plan again to retry saving.';
       panel.querySelector('.pill').textContent = 'Ready';
     } finally {
       button.disabled = false;
@@ -154,3 +154,30 @@
     }
   });
 })();
+
+(() => {
+  if(document.getElementById('p2p-complete-controls'))return;
+  const marker=document.createElement('style');marker.id='p2p-complete-controls';marker.textContent='.p2p-ai-result{grid-column:1/-1} .p2p-help{margin-top:12px} [id]{scroll-margin-top:140px}';document.head.append(marker);
+  const main=document.querySelector('.main');if(!main)return;
+  const report=[...document.querySelectorAll('button')].find(b=>/^Export report$/i.test(b.textContent.trim()));
+  if(report)report.addEventListener('click',async()=>{
+    report.disabled=true;report.textContent='Preparing report…';
+    let note=document.getElementById('p2p-export-status');if(!note){note=document.createElement('p');note.id='p2p-export-status';note.setAttribute('role','status');document.querySelector('.topbar').after(note);}
+    try{const response=await fetch('/api/report');if(!response.ok)throw new Error('The report could not be prepared. Please retry.');await response.text();const link=document.createElement('a');link.href='/api/report';link.textContent='Download your report (.txt)';link.download='Price-2-Plate-report.txt';note.replaceChildren(link);link.click();}catch(e){note.textContent=e.message;}finally{report.disabled=false;report.textContent='Export report';}
+  });
+  let info=document.getElementById('workspace-info');if(!info){info=document.createElement('section');info.id='workspace-info';info.className='card';info.style.marginTop='14px';info.innerHTML='<h2>Your private workspace</h2><p>Records added here belong to this device’s workspace. Fresh installations start empty. Keep this app’s data to retain access. Cross-device sign-in is not configured yet.</p>';main.append(info);}
+  const prompts=[
+    ['Supplier intelligence','purchasing','Which ingredients should I compare against cheaper equivalent products? Use my invoice prices and identify missing quotes, pack sizes and quality checks.'],
+    ['Live Menu Costing','menu','Review my saved recipes for portion quantity changes, ingredient alternatives and margin improvements. Explain the quality and yield trade-offs and use only my recorded prices.'],
+    ['Labour by service','labour','Suggest labour-saving methods: stagger starts and finishes at quieter times, reduce unnecessary overlap, improve prep and station workflows. Explain what hourly sales and roster data are needed to quantify savings.'],
+    ['Priority profit leaks','profit','Help identify my largest profit leaks and propose measurable corrective actions. If I have no sales or labour records, tell me what I need to collect.']
+  ];
+  for(const [heading,area,prompt] of prompts){const h=[...document.querySelectorAll('h2')].find(n=>n.textContent===heading);const host=h?.closest('.card');if(!host)continue;
+    if(area==='labour')for(const b of host.querySelectorAll('button'))if(b.textContent==='Find labour savings')b.remove();
+    const button=document.createElement('button');button.type='button';button.className='btn p2p-help';button.textContent=area==='labour'?'Find labour savings':'Ask the Analyst about this';
+    const output=document.createElement('div');output.className='p2p-ai-result';output.hidden=true;output.setAttribute('role','status');host.append(button,output);
+    button.addEventListener('click',async()=>{button.disabled=true;output.hidden=false;output.textContent='Reviewing your workspace…';try{const response=await fetch('/api/ai/advice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,question:prompt})});const result=await response.json();if(!response.ok)throw new Error(result.error||'The analyst could not answer.');output.textContent=result.advice.summary;}catch(e){output.textContent=e.message;}finally{button.disabled=false;}});
+  }
+  for(const link of document.querySelectorAll('.nav a'))link.addEventListener('click',event=>{const target=document.querySelector(link.getAttribute('href'));if(!target)return;event.preventDefault();document.getElementById('p2p-home').hidden=true;document.querySelector('.shell').hidden=false;target.setAttribute('tabindex','-1');target.focus({preventScroll:true});target.scrollIntoView({behavior:'smooth'});});
+})();
+

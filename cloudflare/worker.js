@@ -1,3 +1,4 @@
+import { api } from './api.mjs';
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
@@ -39,6 +40,7 @@ var invoiceSchema = {
 var worker_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if(url.pathname.startsWith('/api/')) return api(request,env,extractInvoice,deriveBaseCost,outputText);
     if (url.pathname === "/api/health") {
       return json({ ok: true, ai_configured: Boolean(env.OPENAI_API_KEY), database_configured: Boolean(env.DB) });
     }
@@ -368,5 +370,7 @@ export {
   worker_default as default
 };
 //# sourceMappingURL=worker.js.map
+
+
 
 

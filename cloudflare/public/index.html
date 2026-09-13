@@ -1,9 +1,6 @@
-
-<!doctype html>
-<html lang="en">
-<head>
+<!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Demonstration Venue · Restaurant Profit Recovery</title>
+<title>Price 2 Plate</title>
 <style>
 :root{
   --bg:#07111e; --panel:#0c1827; --panel2:#111f30; --line:#203246;
@@ -51,92 +48,75 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
 @media(max-width:980px){.shell{grid-template-columns:1fr}.sidebar{display:none}.main{padding:22px}.kpis{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-2.equal{grid-template-columns:1fr}.plan{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.kpis,.plan{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}.main{padding:18px}}
 </style>
-<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07111e"></head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07111e"><script>(()=>{const original=window.fetch.bind(window);const ready=original('/api/session',{credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error('Could not open your private workspace.');});window.fetch=async(input,options)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&url.pathname!='/api/session')await ready;const response=await original(input,options);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/api/report')){const parse=response.json.bind(response);response.json=async()=>{try{return await parse();}catch{throw new Error('The service returned an unreadable response. Please retry.');}};}return response;};})();</script></head>
 <body>
 <div class="shell">
 <aside class="sidebar">
-  <div class="logo">SECOND SERVICE<small>PROFIT INTELLIGENCE</small></div>
+  <div class="logo">PRICE 2 PLATE<small>PROFIT INTELLIGENCE</small></div>
   <nav class="nav">
-    <a class="active" href="/admin/cockpit-demo"><span class="icon">◫</span>Overview</a>
-    <a href="#"><span class="icon">↗</span>Profit recovery</a>
+    <a class="active" href="#overview"><span class="icon">◫</span>Overview</a>
+    <a href="#profit-recovery"><span class="icon">↗</span>Profit recovery</a>
     <a href="#invoice-processing"><span class="icon">▦</span>Purchasing</a>
-    <a href="#"><span class="icon">◴</span>Labour</a>
+    <a href="#labour"><span class="icon">◴</span>Labour</a>
     <a href="#menu-costing"><span class="icon">◉</span>Menu performance</a>
-    <a href="#"><span class="icon">✦</span>Ask the Analyst</a>
-    <a href="/admin"><span class="icon">⌂</span>Venues</a>
+    <a href="#analyst"><span class="icon">✦</span>Ask the Analyst</a>
+    <a href="#workspace-info">Workspace</a>
   </nav>
-  <div class="sidebar-foot"><span class="status-dot"></span>Analysis engine online<br><br>Consultant control layer active</div>
+  <div class="sidebar-foot">Private workspace on this device</div>
 </aside>
 
-<main class="main">
+<main class="main" id="overview">
   <header class="topbar">
-    <div><div class="kicker">Consultant cockpit</div><h1>Demonstration Venue</h1><div class="muted">Last analysis: current demonstration dataset</div></div>
+    <div><div class="kicker">Price 2 Plate</div><h1>Your workspace</h1><div class="muted">No sales or labour data imported yet.</div></div>
     <div class="top-actions"><button class="btn ghost">Export report</button><button class="btn primary">Create action plan</button></div>
   </header>
 
   <section class="kpis">
-    <div class="card kpi"><div class="label">Venue health score</div><div class="value">49/100</div><div class="delta bad"><span class="pill red">Needs attention</span></div></div>
-    <div class="card kpi"><div class="label">Recoverable profit / month</div><div class="value">$13,070</div><div class="delta muted">$156,837 annualised</div></div>
-    <div class="card kpi"><div class="label">Operating margin</div><div class="value">3.64%</div><div class="delta"><span class="pill orange">Low margin</span></div></div>
-    <div class="card kpi"><div class="label">Prime cost</div><div class="value">80.38%</div><div class="delta muted">Configured target 63.0%</div></div>
+    <div class="card kpi"><div class="label">Venue health score</div><div class="value">0/100</div><div class="delta bad">No data yet</div></div>
+    <div class="card kpi"><div class="label">Recoverable profit / month</div><div class="value">$0</div><div class="delta muted">No data yet</div></div>
+    <div class="card kpi"><div class="label">Operating margin</div><div class="value">0%</div><div class="delta">No data yet</div></div>
+    <div class="card kpi"><div class="label">Prime cost</div><div class="value">0%</div><div class="delta muted">No data yet</div></div>
   </section>
 
   <section class="grid-2">
     <div class="card">
-      <div class="card-head"><div><h2>Profit recovery trend</h2><div class="muted">Monthly operating result vs recovery target</div></div><span class="pill green">+ opportunity</span></div>
-      <div class="chart">
-        <div class="bars">
-          <div class="bar" style="height:35%"><span>Mar</span></div><div class="bar" style="height:43%"><span>Apr</span></div>
-          <div class="bar" style="height:48%"><span>May</span></div><div class="bar" style="height:39%"><span>Jun</span></div>
-          <div class="bar" style="height:57%"><span>Jul</span></div><div class="bar" style="height:63%"><span>Aug</span></div>
-        </div><div class="chart-line"></div>
-      </div>
+      <div class="card-head"><div><h2>Profit recovery trend</h2><div class="muted">Monthly operating result vs recovery target</div></div><span class="pill green">No data yet</span></div>
+      <div class="chart" style="height: auto;">No sales history yet.</div>
     </div>
-    <div class="card">
+    <div class="card" id="profit-recovery">
       <div class="card-head"><div><h2>Priority profit leaks</h2><div class="muted">Ranked by estimated financial impact</div></div></div>
       
-<div class="leak"><div><div class="leak-title">Labour is 5.3 points above target</div><div class="evidence">Current 37.26% · Configured target 32.0%</div></div><div class="impact">$6,649<div class="muted" style="font-size:10px">/ month</div></div></div>
-<div class="leak"><div><div class="leak-title">Food cost is 5.1 points above target</div><div class="evidence">Current 36.08% · Configured target 31.0%</div></div><div class="impact">$6,421<div class="muted" style="font-size:10px">/ month</div></div></div>
-<div class="leak"><div><div class="leak-title">Tuesday lunch labour is 51.0%</div><div class="evidence">Revenue 4200 · Labour cost 2140</div></div><div class="impact">$796<div class="muted" style="font-size:10px">/ month</div></div></div>
+
+
+
 
     </div>
   </section>
 
   <section class="grid-2 equal">
     <div class="card">
-      <div class="card-head"><div><h2>Supplier intelligence</h2><div class="muted">Invoice-derived purchasing movements</div></div><span class="pill blue">{{ drift|length }} flagged</span></div>
-      <table class="table"><thead><tr><th>Product</th><th>Supplier</th><th class="right">From</th><th class="right">To</th><th class="right">Move</th></tr></thead><tbody>
-      <tr><td><strong>Beef Short Rib</strong><div class="muted">2026-05-03 → 2026-08-06</div></td><td>Supplier A</td><td class="right">$17.60</td><td class="right">$21.10</td><td class="right"><span class="pill orange">+19.9%</span></td></tr>
-      </tbody></table>
+      <div class="card-head"><div><h2>Supplier intelligence</h2><div class="muted">Invoice-derived purchasing movements</div></div><span class="pill blue">No data yet</span></div>
+      <table class="table"><thead><tr><th>Product</th><th>Supplier</th><th class="right">From</th><th class="right">To</th><th class="right">Move</th></tr></thead><tbody></tbody></table>
     </div>
-    <div class="card">
+    <div class="card" id="labour">
       <div class="card-head"><div><h2>Labour by service</h2><div class="muted">Where wage spend is misaligned with revenue</div></div></div>
-      <table class="table"><thead><tr><th>Service</th><th class="right">Labour</th><th class="right">Rev / hr</th><th class="right">Status</th></tr></thead><tbody>
-      
-<tr><td><strong>Tuesday lunch</strong><div class="muted">$4,200 revenue</div></td><td class="right">51.0%</td><td class="right">$55.26</td><td class="right"><span class="pill red">Critical</span></td></tr>
-<tr><td><strong>Friday dinner</strong><div class="muted">$11,900 revenue</div></td><td class="right">29.0%</td><td class="right">$106.25</td><td class="right"><span class="pill green">OK</span></td></tr>
-<tr><td><strong>Saturday dinner</strong><div class="muted">$14,800 revenue</div></td><td class="right">27.0%</td><td class="right">$117.46</td><td class="right"><span class="pill green">OK</span></td></tr>
-
-      </tbody></table>
+      <table class="table"><thead><tr><th>Service</th><th class="right">Labour</th><th class="right">Rev / hr</th><th class="right">Status</th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 
   <section class="grid-2 equal">
     <div class="card">
-      <div class="card-head"><div><h2>Menu & margin signal</h2><div class="muted">Current cost structure from purchasing data</div></div></div>
+      <div class="card-head"><div><h2>Menu &amp; margin signal</h2><div class="muted">Current cost structure from purchasing data</div></div></div>
       <div class="row" style="display:grid;gap:16px">
-        <div><div style="display:flex;justify-content:space-between"><span>Food cost</span><strong>36.08%</strong></div><div class="progress"><span style="width:{{ [financial.metrics.food_cost_pct*2,100]|min }}%"></span></div><div class="muted" style="font-size:11px;margin-top:6px">Target 31.0%</div></div>
-        <div><div style="display:flex;justify-content:space-between"><span>Labour</span><strong>37.26%</strong></div><div class="progress"><span style="width:{{ [financial.metrics.labour_pct*2,100]|min }}%"></span></div><div class="muted" style="font-size:11px;margin-top:6px">Target 32.0%</div></div>
-        <div><div style="display:flex;justify-content:space-between"><span>Gross margin</span><strong>56.88%</strong></div><div class="progress"><span style="width:56.88%"></span></div></div>
+        <div><div style="display:flex;justify-content:space-between"><span>Food cost</span><strong>0%</strong></div><div class="progress"><span style="width:{{ [financial.metrics.food_cost_pct*2,100]|min }}%"></span></div><div class="muted" style="font-size:11px;margin-top:6px">No data yet</div></div>
+        <div><div style="display:flex;justify-content:space-between"><span>Labour</span><strong>0%</strong></div><div class="progress"><span style="width:{{ [financial.metrics.labour_pct*2,100]|min }}%"></span></div><div class="muted" style="font-size:11px;margin-top:6px">No data yet</div></div>
+        <div><div style="display:flex;justify-content:space-between"><span>Gross margin</span><strong>0%</strong></div><div class="progress"><span style="width: 0%;"></span></div></div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-head"><div><h2>Ask the Analyst</h2><div class="muted">Interrogate the venue evidence in plain English</div></div><span class="pill green">AI ready</span></div>
-      <div class="ai-box"><input value="Why did GP deteriorate this month?" aria-label="Ask the Analyst"><button class="btn primary">Ask</button></div>
-      <div style="margin-top:14px;padding:14px;background:#081522;border:1px solid var(--line);border-radius:12px">
-        <div class="kicker">Suggested investigation</div>
-        <p style="margin-bottom:0">Food cost is 36.08% versus a 31.0% configured target. Review invoice price movement, yield, waste, stock timing and high-volume recipe costs before choosing an intervention.</p>
-      </div>
+    <div class="card" id="analyst">
+      <div class="card-head"><div><h2>Ask the Analyst</h2><div class="muted">Interrogate the venue evidence in plain English</div></div><span class="pill green">No data yet</span></div>
+      <div class="ai-box"><input value="Why did GP deteriorate this month?" aria-label="Ask the Analyst" placeholder="How can I improve my margins?"><button class="btn primary">Ask</button></div>
+      <div style="margin-top:14px;padding:14px;background:#081522;border:1px solid var(--line);border-radius:12px">Ask about purchasing, menu portions, labour or waste. Advice uses only your workspace records.</div>
     </div>
   </section>
 
@@ -177,7 +157,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
       <div id="recipeRows"></div>
       <div style="display:flex;gap:10px;margin-top:10px">
         <button class="btn" id="addIngredientBtn">+ Ingredient</button>
-        <button class="btn primary" id="saveRecipeBtn">Calculate & save</button>
+        <button class="btn primary" id="saveRecipeBtn">Calculate &amp; save</button>
       </div>
       <div id="recipeMessage" class="muted" style="margin-top:10px"></div>
     </div>
@@ -199,7 +179,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
 </section>
 
 <section class="card" style="margin-top:14px">
-    <div class="card-head"><div><h2>90-day recovery plan</h2><div class="muted">Software finds the signal. Consultant approves the intervention.</div></div><span class="pill green">Consultant controlled</span></div>
+    <div class="card-head"><div><h2>90-day recovery plan</h2><div class="muted">General checklist. Create a plan to start reviewing your own records.</div></div><span class="pill green">No data yet</span></div>
     <div class="plan">
       <div class="plan-step"><strong>DAYS 1–14</strong><p>Verify the largest identified leaks and install immediate controls.</p></div>
       <div class="plan-step"><strong>DAYS 15–30</strong><p>Implement consultant-approved margin and labour interventions.</p></div>
@@ -408,4 +388,6 @@ loadRecipes();
 
 </script>
 
-<script src="/welcome.js"></script>\n</body></html>
+<script src="/welcome.js"></script>\n
+
+</body></html>
