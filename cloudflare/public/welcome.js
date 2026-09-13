@@ -184,6 +184,7 @@
 
 
 (()=>{
+ if(location.origin!=="https://second-service-profit-intelligence.craig-moloneyg.workers.dev")return;
  const b=document.getElementById("accountBtn"),p=document.getElementById("account-panel"),f=document.getElementById("account-form"); if(!b||!p||!f)return;
  let signup=true; const title=document.getElementById("account-title"),submit=document.getElementById("account-submit"),toggle=document.getElementById("account-toggle"),msg=document.getElementById("account-message");
  const setMode=()=>{title.textContent=signup?"Create your account":"Sign in";submit.textContent=signup?"Create account":"Sign in";toggle.textContent=signup?"Already have an account? Sign in":"Need an account? Create one";document.getElementById("account-password").autocomplete=signup?"new-password":"current-password";};
