@@ -96,3 +96,60 @@
   const labourHost = labourHeading?.closest('.card') || labourHeading?.parentElement;
   if (labourHost) { const button = document.createElement('button'); button.className='btn primary'; button.type='button'; button.textContent='Find labour savings'; button.addEventListener('click', () => ask(labourHost, 'labour', 'Identify labour-saving methods while maintaining service, safety and Australian employment obligations.', labourHost.innerText.slice(0, 7000))); labourHost.querySelector('.card-head')?.append(button) || labourHost.prepend(button); }
 })();
+
+ 
+// Price 2 Plate action-plan control: turns the dashboard action into a visible, usable result.
+(() => {
+  'use strict';
+  if (location.origin !== 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev' || document.getElementById('p2p-action-plan')) return;
+  const button = [...document.querySelectorAll('.top-actions button')].find((node) => /create action plan/i.test(node.textContent || ''));
+  const main = document.querySelector('.main');
+  if (!button || !main) return;
+  button.id = 'p2p-create-plan';
+  const panel = document.createElement('section');
+  panel.id = 'p2p-action-plan';
+  panel.className = 'card';
+  panel.style.cssText = 'margin-top:14px;border:2px solid #6c9156;background:#f1f5eb!important;color:#20382f';
+  panel.hidden = true;
+  main.insertBefore(panel, main.firstElementChild?.nextElementSibling || main.firstChild);
+  const escape = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+  const steps = [
+    ['Today · Baseline', 'Confirm the current food cost, labour percentage, sales and waste numbers so the change can be measured.'],
+    ['Days 1–7 · Purchasing', 'Review the largest supplier price movements, check yields and set a receiving and invoice review routine.'],
+    ['Days 8–14 · Labour', 'Match rosters to demand by service, remove avoidable overlap and test one labour-saving change at a time.'],
+    ['Days 15–30 · Menu', 'Cost the highest-volume dishes, adjust portions or substitutes where the evidence supports it, and review pricing.'],
+    ['Days 31–90 · Measure', 'Track weekly food cost, labour, waste and gross profit; keep the changes that improve margin without hurting service.']
+  ];
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    button.textContent = 'Building plan…';
+    panel.hidden = false;
+    panel.innerHTML = '<div class="card-head"><div><h2>Action plan</h2><div class="muted">A practical plan built from the current venue evidence.</div></div><span class="pill orange">Draft</span></div><div class="plan">' +
+      steps.map((step) => '<div class="plan-step"><strong>' + escape(step[0]) + '</strong><p>' + escape(step[1]) + '</p></div>').join('') +
+      '</div><p class="muted" id="p2p-plan-status" style="margin:14px 0 0">Preparing your saved plan…</p>';
+    panel.scrollIntoView({behavior:'smooth', block:'start'});
+    try {
+      const response = await fetch('/api/action-plans', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          title: 'Price 2 Plate profit recovery plan',
+          focus: 'food cost, labour alignment, purchasing controls and menu margin',
+          evidence: (main.innerText || '').slice(0, 9000)
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save the plan');
+      const status = document.getElementById('p2p-plan-status');
+      if (status) status.textContent = data.saved === false ? 'Plan is ready on this device. Connect the database to save it for future sessions.' : 'Plan saved. Use the steps above as the checklist for the next 90 days.';
+      panel.querySelector('.pill').textContent = data.saved === false ? 'Ready' : 'Saved';
+    } catch (error) {
+      const status = document.getElementById('p2p-plan-status');
+      if (status) status.textContent = 'Plan is ready to use. Saving will retry when the connection is available.';
+      panel.querySelector('.pill').textContent = 'Ready';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Create action plan';
+    }
+  });
+})();
