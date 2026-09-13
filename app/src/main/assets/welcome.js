@@ -66,3 +66,31 @@
   }));
   show(location.hash ? 'dashboard' : 'home', false);
 })();
+
+// Turn the existing analysis controls into working, evidence-led actions.
+(() => {
+  'use strict';
+  if (location.origin !== 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev' || document.getElementById('p2p-ai-actions')) return;
+  const style = document.createElement('style'); style.id = 'p2p-ai-actions';
+  style.textContent = '.p2p-ai-result{margin-top:14px;padding:16px;border-radius:12px;background:#eef3eb;border:1px solid #c9dacb;color:#234434;white-space:pre-wrap;line-height:1.5}.p2p-ai-result strong{display:block;margin-bottom:6px}.p2p-ai-busy{opacity:.65;pointer-events:none}'; document.head.append(style);
+  const result = document.createElement('div'); result.className = 'p2p-ai-result'; result.hidden = true;
+  function text(value) { return String(value ?? '').replace(/[<>]/g, ''); }
+  function addResult(host, heading, data) {
+    const opportunities = Array.isArray(data?.opportunities) ? data.opportunities : [];
+    const lines = opportunities.slice(0, 8).map((item, index) => `${index + 1}. ${item.title || 'Opportunity'}\n${(item.why || '').trim()}\nActions: ${(Array.isArray(item.steps) ? item.steps : []).join('; ')}${item.estimated_saving != null ? `\nEstimated saving: ${item.estimated_saving}` : ''}`).join('\n\n');
+    result.innerHTML = `<strong>${text(heading)}</strong>${text(data?.summary || 'No recommendation was returned.')}\n\n${text(lines)}\n\nFollow-up: ${text(data?.measurement || 'Measure the change against the same period next week.')}`;
+    result.hidden = false; host.append(result.cloneNode(true));
+  }
+  async function ask(host, area, question, evidence) {
+    const button = host.querySelector('button'); button?.classList.add('p2p-ai-busy'); if (button) button.textContent = 'Thinking…';
+    try { const response = await fetch('/api/ai/advice', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,question,evidence:[{id:area+'-dashboard',text:evidence} ]})}); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'AI request failed'); addResult(host, area === 'labour' ? 'Labour saving opportunities' : 'Recommended next actions', data.advice || data); }
+    catch (error) { const message = document.createElement('div'); message.className='p2p-ai-result'; message.textContent = error.message; host.append(message); }
+    finally { if (button) { button.classList.remove('p2p-ai-busy'); button.textContent = area === 'labour' ? 'Find labour savings' : 'Ask'; } }
+  }
+  const aiBox = document.querySelector('.ai-box');
+  if (aiBox) { const input = aiBox.querySelector('input'); const button = aiBox.querySelector('button'); if (input && button) { button.addEventListener('click', () => ask(aiBox, 'profit', input.value, document.querySelector('.main')?.innerText.slice(0, 7000) || input.value)); } }
+  const labourHeading = [...document.querySelectorAll('h2')].find(node => /Labour by service/i.test(node.textContent || ''));
+  const labourHost = labourHeading?.closest('.card') || labourHeading?.parentElement;
+  if (labourHost) { const button = document.createElement('button'); button.className='btn primary'; button.type='button'; button.textContent='Find labour savings'; button.addEventListener('click', () => ask(labourHost, 'labour', 'Identify labour-saving methods while maintaining service, safety and Australian employment obligations.', labourHost.innerText.slice(0, 7000))); labourHost.querySelector('.card-head')?.append(button) || labourHost.prepend(button); }
+})();
+
