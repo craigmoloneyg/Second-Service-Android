@@ -1,5 +1,6 @@
 name = "second-service-profit-intelligence"
 main = "worker.js"
+preview_urls = false
 compatibility_date = "2026-09-13"
 
 [assets]

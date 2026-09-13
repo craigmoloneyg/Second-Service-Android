@@ -10,7 +10,7 @@ async function workspace(env, id) {
 }
 async function save(env,id,record) {
   const data=JSON.stringify(record.data);
-  if(data.length>4000000) throw new Error('This workspace is full. Export your records before adding more.');
+  if(data.length>900000) throw new Error('This workspace is full. Export your records before adding more.');
   let result;
   if(!record.revision) result=await env.DB.prepare('INSERT OR IGNORE INTO p2p_private_workspaces (id,revision,data) VALUES (?,1,?)').bind(id,data).run();
   else result=await env.DB.prepare('UPDATE p2p_private_workspaces SET data=?,revision=revision+1 WHERE id=? AND revision=?').bind(data,id,record.revision).run();
