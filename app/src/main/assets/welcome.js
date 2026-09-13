@@ -3,6 +3,9 @@
   if (location.origin !== 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev' || document.getElementById('p2p-style')) return;
   const shell = document.querySelector('.shell');
   if (!shell || !document.querySelector('#invoice-processing')) return;
+  document.title = 'Price 2 Plate · Restaurant Profit Intelligence';
+  const legacyLogo = document.querySelector('.sidebar .logo');
+  if (legacyLogo) legacyLogo.innerHTML = 'PRICE 2 PLATE<small>PROFIT INTELLIGENCE</small>';
   const style = document.createElement('style');
   style.id = 'p2p-style';
   style.textContent = `
