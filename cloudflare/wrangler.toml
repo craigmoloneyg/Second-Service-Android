@@ -1,0 +1,12 @@
+name = "second-service-profit-intelligence"
+main = "worker.js"
+compatibility_date = "2026-09-13"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "second-service-db"
+database_id = "d53e2902-bc5c-4bee-8489-02815bcfddcd"

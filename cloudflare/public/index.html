@@ -1,0 +1,411 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demonstration Venue · Restaurant Profit Recovery</title>
+<style>
+:root{
+  --bg:#07111e; --panel:#0c1827; --panel2:#111f30; --line:#203246;
+  --text:#f7fbff; --muted:#8fa4ba; --gold:#f4c76a; --green:#39d98a;
+  --red:#ff6f7d; --orange:#ffad5c; --blue:#65a8ff; --nav:#081521;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:linear-gradient(180deg,#07111e 0%,#091522 100%);color:var(--text);
+font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:inherit;text-decoration:none}
+button,input,textarea,select{font:inherit}
+.shell{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+.sidebar{background:rgba(5,14,24,.97);border-right:1px solid var(--line);padding:26px 18px;position:sticky;top:0;height:100vh}
+.logo{font-size:19px;font-weight:900;letter-spacing:.11em}.logo small{display:block;color:var(--gold);font-size:10px;margin-top:5px;letter-spacing:.2em}
+.nav{margin-top:32px;display:grid;gap:7px}.nav a{padding:12px 13px;border-radius:10px;color:var(--muted);font-weight:650}
+.nav a.active,.nav a:hover{background:#12253a;color:#fff}.nav .icon{display:inline-block;width:26px;color:var(--gold)}
+.sidebar-foot{position:absolute;bottom:24px;left:18px;right:18px;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:12px}
+.main{padding:28px 34px 55px;min-width:0}.topbar{display:flex;justify-content:space-between;gap:18px;align-items:center}
+.kicker{font-size:11px;letter-spacing:.18em;color:var(--gold);font-weight:800;text-transform:uppercase}
+h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-size:15px}
+.muted{color:var(--muted)}.top-actions{display:flex;gap:10px;align-items:center}
+.btn{border:1px solid var(--line);background:#13243a;color:#fff;padding:10px 14px;border-radius:10px;font-weight:750;cursor:pointer}
+.btn.primary{background:var(--gold);color:#0b1420;border-color:var(--gold)}
+.btn.ghost{background:transparent}.pill{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}
+.pill.red{background:rgba(255,111,125,.14);color:#ff8e99}.pill.orange{background:rgba(255,173,92,.14);color:#ffbd7d}
+.pill.green{background:rgba(57,217,138,.13);color:#5fe5a2}.pill.blue{background:rgba(101,168,255,.13);color:#8bc0ff}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:26px}
+.card{background:linear-gradient(180deg,rgba(16,31,48,.98),rgba(10,24,39,.98));border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.16)}
+.kpi .label{color:var(--muted);font-size:12px;font-weight:700}.kpi .value{font-size:29px;font-weight:900;margin:8px 0 4px}.kpi .delta{font-size:11px}
+.grid-2{display:grid;grid-template-columns:1.35fr .85fr;gap:14px;margin-top:14px}.grid-2.equal{grid-template-columns:1fr 1fr}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.chart{height:220px;position:relative;padding:18px 6px 6px}.bars{height:165px;display:flex;align-items:end;gap:12px;border-bottom:1px solid #29405a}
+.bar{flex:1;min-width:18px;border-radius:7px 7px 0 0;background:linear-gradient(180deg,#efc967,#5e9af5);opacity:.95;position:relative}
+.bar span{position:absolute;bottom:-25px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted)}
+.chart-line{position:absolute;left:3%;right:3%;top:52%;height:2px;background:var(--green);transform:rotate(-6deg);box-shadow:0 0 15px rgba(57,217,138,.35)}
+.leak{display:grid;grid-template-columns:1fr auto;gap:14px;padding:13px 0;border-top:1px solid var(--line)}.leak:first-of-type{border-top:0}
+.leak-title{font-weight:800}.impact{text-align:right;font-weight:900;color:#fff}.evidence{font-size:11px;color:var(--muted);margin-top:4px}
+.table{width:100%;border-collapse:collapse}.table th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 7px;border-bottom:1px solid var(--line)}
+.table td{padding:12px 7px;border-bottom:1px solid rgba(32,50,70,.65);font-size:13px}.right{text-align:right!important}
+.progress{height:8px;background:#17293d;border-radius:99px;overflow:hidden}.progress > span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--green))}
+.plan{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.plan-step{padding:14px;border:1px solid var(--line);border-radius:12px;background:#0a1726}
+.plan-step strong{display:block;color:var(--gold);font-size:12px;margin-bottom:8px}.plan-step p{font-size:12px;color:var(--muted);margin:0}
+.ai-box{display:grid;grid-template-columns:1fr auto;gap:10px}.ai-box input{background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:13px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+@media(max-width:980px){.shell{grid-template-columns:1fr}.sidebar{display:none}.main{padding:22px}.kpis{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-2.equal{grid-template-columns:1fr}.plan{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.kpis,.plan{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}.main{padding:18px}}
+</style>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07111e"></head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo">SECOND SERVICE<small>PROFIT INTELLIGENCE</small></div>
+  <nav class="nav">
+    <a class="active" href="/admin/cockpit-demo"><span class="icon">◫</span>Overview</a>
+    <a href="#"><span class="icon">↗</span>Profit recovery</a>
+    <a href="#invoice-processing"><span class="icon">▦</span>Purchasing</a>
+    <a href="#"><span class="icon">◴</span>Labour</a>
+    <a href="#menu-costing"><span class="icon">◉</span>Menu performance</a>
+    <a href="#"><span class="icon">✦</span>Ask the Analyst</a>
+    <a href="/admin"><span class="icon">⌂</span>Venues</a>
+  </nav>
+  <div class="sidebar-foot"><span class="status-dot"></span>Analysis engine online<br><br>Consultant control layer active</div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div><div class="kicker">Consultant cockpit</div><h1>Demonstration Venue</h1><div class="muted">Last analysis: current demonstration dataset</div></div>
+    <div class="top-actions"><button class="btn ghost">Export report</button><button class="btn primary">Create action plan</button></div>
+  </header>
+
+  <section class="kpis">
+    <div class="card kpi"><div class="label">Venue health score</div><div class="value">49/100</div><div class="delta bad"><span class="pill red">Needs attention</span></div></div>
+    <div class="card kpi"><div class="label">Recoverable profit / month</div><div class="value">$13,070</div><div class="delta muted">$156,837 annualised</div></div>
+    <div class="card kpi"><div class="label">Operating margin</div><div class="value">3.64%</div><div class="delta"><span class="pill orange">Low margin</span></div></div>
+    <div class="card kpi"><div class="label">Prime cost</div><div class="value">80.38%</div><div class="delta muted">Configured target 63.0%</div></div>
+  </section>
+
+  <section class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h2>Profit recovery trend</h2><div class="muted">Monthly operating result vs recovery target</div></div><span class="pill green">+ opportunity</span></div>
+      <div class="chart">
+        <div class="bars">
+          <div class="bar" style="height:35%"><span>Mar</span></div><div class="bar" style="height:43%"><span>Apr</span></div>
+          <div class="bar" style="height:48%"><span>May</span></div><div class="bar" style="height:39%"><span>Jun</span></div>
+          <div class="bar" style="height:57%"><span>Jul</span></div><div class="bar" style="height:63%"><span>Aug</span></div>
+        </div><div class="chart-line"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>Priority profit leaks</h2><div class="muted">Ranked by estimated financial impact</div></div></div>
+      
+<div class="leak"><div><div class="leak-title">Labour is 5.3 points above target</div><div class="evidence">Current 37.26% · Configured target 32.0%</div></div><div class="impact">$6,649<div class="muted" style="font-size:10px">/ month</div></div></div>
+<div class="leak"><div><div class="leak-title">Food cost is 5.1 points above target</div><div class="evidence">Current 36.08% · Configured target 31.0%</div></div><div class="impact">$6,421<div class="muted" style="font-size:10px">/ month</div></div></div>
+<div class="leak"><div><div class="leak-title">Tuesday lunch labour is 51.0%</div><div class="evidence">Revenue 4200 · Labour cost 2140</div></div><div class="impact">$796<div class="muted" style="font-size:10px">/ month</div></div></div>
+
+    </div>
+  </section>
+
+  <section class="grid-2 equal">
+    <div class="card">
+      <div class="card-head"><div><h2>Supplier intelligence</h2><div class="muted">Invoice-derived purchasing movements</div></div><span class="pill blue">{{ drift|length }} flagged</span></div>
+      <table class="table"><thead><tr><th>Product</th><th>Supplier</th><th class="right">From</th><th class="right">To</th><th class="right">Move</th></tr></thead><tbody>
+      <tr><td><strong>Beef Short Rib</strong><div class="muted">2026-05-03 → 2026-08-06</div></td><td>Supplier A</td><td class="right">$17.60</td><td class="right">$21.10</td><td class="right"><span class="pill orange">+19.9%</span></td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>Labour by service</h2><div class="muted">Where wage spend is misaligned with revenue</div></div></div>
+      <table class="table"><thead><tr><th>Service</th><th class="right">Labour</th><th class="right">Rev / hr</th><th class="right">Status</th></tr></thead><tbody>
+      
+<tr><td><strong>Tuesday lunch</strong><div class="muted">$4,200 revenue</div></td><td class="right">51.0%</td><td class="right">$55.26</td><td class="right"><span class="pill red">Critical</span></td></tr>
+<tr><td><strong>Friday dinner</strong><div class="muted">$11,900 revenue</div></td><td class="right">29.0%</td><td class="right">$106.25</td><td class="right"><span class="pill green">OK</span></td></tr>
+<tr><td><strong>Saturday dinner</strong><div class="muted">$14,800 revenue</div></td><td class="right">27.0%</td><td class="right">$117.46</td><td class="right"><span class="pill green">OK</span></td></tr>
+
+      </tbody></table>
+    </div>
+  </section>
+
+  <section class="grid-2 equal">
+    <div class="card">
+      <div class="card-head"><div><h2>Menu & margin signal</h2><div class="muted">Current cost structure from purchasing data</div></div></div>
+      <div class="row" style="display:grid;gap:16px">
+        <div><div style="display:flex;justify-content:space-between"><span>Food cost</span><strong>36.08%</strong></div><div class="progress"><span style="width:{{ [financial.metrics.food_cost_pct*2,100]|min }}%"></span></div><div class="muted" style="font-size:11px;margin-top:6px">Target 31.0%</div></div>
+        <div><div style="display:flex;justify-content:space-between"><span>Labour</span><strong>37.26%</strong></div><div class="progress"><span style="width:{{ [financial.metrics.labour_pct*2,100]|min }}%"></span></div><div class="muted" style="font-size:11px;margin-top:6px">Target 32.0%</div></div>
+        <div><div style="display:flex;justify-content:space-between"><span>Gross margin</span><strong>56.88%</strong></div><div class="progress"><span style="width:56.88%"></span></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>Ask the Analyst</h2><div class="muted">Interrogate the venue evidence in plain English</div></div><span class="pill green">AI ready</span></div>
+      <div class="ai-box"><input value="Why did GP deteriorate this month?" aria-label="Ask the Analyst"><button class="btn primary">Ask</button></div>
+      <div style="margin-top:14px;padding:14px;background:#081522;border:1px solid var(--line);border-radius:12px">
+        <div class="kicker">Suggested investigation</div>
+        <p style="margin-bottom:0">Food cost is 36.08% versus a 31.0% configured target. Review invoice price movement, yield, waste, stock timing and high-volume recipe costs before choosing an intervention.</p>
+      </div>
+    </div>
+  </section>
+
+  
+<section class="card" id="invoice-processing" style="margin-top:14px">
+  <div class="card-head">
+    <div>
+      <h2>AI Invoice Processing</h2>
+      <div class="muted">Upload a supplier invoice. The AI extracts the commercial data, then deletes the temporary OpenAI file.</div>
+    </div>
+    <span class="pill green" id="aiStatus">Ready</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr auto;gap:10px">
+    <input id="invoiceFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:13px">
+    <button class="btn primary" id="analyseInvoiceBtn">Analyse invoice</button>
+  </div>
+  <div id="invoiceResult" style="margin-top:14px;display:none;padding:14px;background:#081522;border:1px solid var(--line);border-radius:12px"></div>
+</section>
+
+
+<section class="card" id="menu-costing" style="margin-top:14px">
+  <div class="card-head">
+    <div>
+      <h2>Live Menu Costing</h2>
+      <div class="muted">Build recipes against the latest prices learned from your supplier invoices.</div>
+    </div>
+    <span class="pill green" id="menuDbStatus">Loading ingredients</span>
+  </div>
+
+  <div class="grid-2 equal">
+    <div style="padding:4px">
+      <div class="kicker">Create recipe</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin:10px 0">
+        <input id="recipeName" placeholder="Dish name, e.g. Carbonara" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
+        <input id="sellingPrice" type="number" step="0.01" placeholder="Sell $" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
+        <input id="yieldPortions" type="number" step="1" value="1" min="1" placeholder="Yield" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
+      </div>
+      <div id="recipeRows"></div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn" id="addIngredientBtn">+ Ingredient</button>
+        <button class="btn primary" id="saveRecipeBtn">Calculate & save</button>
+      </div>
+      <div id="recipeMessage" class="muted" style="margin-top:10px"></div>
+    </div>
+
+    <div style="padding:4px">
+      <div class="kicker">What it calculates</div>
+      <div style="display:grid;gap:10px;margin-top:10px">
+        <div class="plan-step"><strong>LIVE PORTION COST</strong><p>Uses the most recent ingredient costs from uploaded invoices.</p></div>
+        <div class="plan-step"><strong>FOOD COST %</strong><p>Portion cost ÷ selling price, recalculated whenever prices move.</p></div>
+        <div class="plan-step"><strong>TARGET SELLING PRICE</strong><p>Shows the price required for 28% and 30% food-cost targets.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px">
+    <div class="card-head"><div><h3>Costed menu</h3><div class="muted">Every saved recipe is recalculated from current invoice prices.</div></div></div>
+    <div id="recipeList"><div class="muted">No recipes loaded yet.</div></div>
+  </div>
+</section>
+
+<section class="card" style="margin-top:14px">
+    <div class="card-head"><div><h2>90-day recovery plan</h2><div class="muted">Software finds the signal. Consultant approves the intervention.</div></div><span class="pill green">Consultant controlled</span></div>
+    <div class="plan">
+      <div class="plan-step"><strong>DAYS 1–14</strong><p>Verify the largest identified leaks and install immediate controls.</p></div>
+      <div class="plan-step"><strong>DAYS 15–30</strong><p>Implement consultant-approved margin and labour interventions.</p></div>
+      <div class="plan-step"><strong>DAYS 31–60</strong><p>Standardise FOH/BOH operating systems and measure intervention results.</p></div>
+      <div class="plan-step"><strong>DAYS 61–90</strong><p>Optimise revenue, lock KPIs and prove annualised recovery.</p></div>
+    </div>
+  </section>
+</main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const money = (v) => {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  return Number.isFinite(n) ? new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(n) : String(v);
+};
+
+$("analyseInvoiceBtn")?.addEventListener("click", async () => {
+  const file = $("invoiceFile").files[0];
+  if (!file) {
+    alert("Choose an invoice first.");
+    return;
+  }
+  const btn = $("analyseInvoiceBtn");
+  const status = $("aiStatus");
+  const out = $("invoiceResult");
+  btn.disabled = true;
+  btn.textContent = "Analysing…";
+  status.textContent = "Reading invoice";
+  out.style.display = "block";
+  out.innerHTML = '<div class="muted">Uploading securely and extracting invoice data…</div>';
+
+  try {
+    const res = await fetch("/api/invoice/extract", {
+      method: "POST",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "X-Filename": encodeURIComponent(file.name)
+      },
+      body: file
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Invoice analysis failed");
+
+    status.textContent = data.saved ? "Saved & costed" : "Complete";
+    const items = (data.line_items || []).slice(0,12).map(i => `
+      <tr>
+        <td>${escapeHtml(i.description || "")}</td>
+        <td>${escapeHtml(i.quantity ?? "")}</td>
+        <td>${escapeHtml(i.unit || "")}</td>
+        <td class="right">${money(i.unit_price)}</td>
+        <td class="right">${money(i.line_total)}</td>
+      </tr>`).join("");
+
+    out.innerHTML = `
+      <div class="kicker">${data.saved ? "AI extraction saved to purchasing history" : "AI extraction complete"}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0 14px">
+        <div><div class="muted">Supplier</div><strong>${escapeHtml(data.supplier_or_source || "Unknown")}</strong></div>
+        <div><div class="muted">Invoice date</div><strong>${escapeHtml(data.document_date || "—")}</strong></div>
+        <div><div class="muted">Invoice no.</div><strong>${escapeHtml(data.document_number || "—")}</strong></div>
+        <div><div class="muted">Total</div><strong>${money(data.total)}</strong></div>
+      </div>
+      <table class="table">
+        <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th class="right">Unit price</th><th class="right">Line total</th></tr></thead>
+        <tbody>${items || '<tr><td colspan="5">No line items extracted.</td></tr>'}</tbody>
+      </table>
+      ${data.missing_or_ambiguous?.length ? `<div class="muted" style="margin-top:12px">Needs review: ${data.missing_or_ambiguous.map(escapeHtml).join(" · ")}</div>` : ""}
+    `;
+    if (data.saved) { await loadIngredients(); await loadRecipes(); }
+  } catch (err) {
+    status.textContent = "Needs attention";
+    out.innerHTML = `<strong>Could not analyse invoice.</strong><div class="muted" style="margin-top:6px">${escapeHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Analyse invoice";
+  }
+});
+
+function escapeHtml(v) {
+  return String(v ?? "").replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s]));
+}
+
+let ingredientCache = [];
+
+async function loadIngredients(){
+  const badge = document.getElementById("menuDbStatus");
+  try{
+    const r = await fetch("/api/ingredients");
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || "Could not load ingredients");
+    ingredientCache = data.ingredients || [];
+    if(badge){ badge.textContent = ingredientCache.length ? `${ingredientCache.length} live ingredients` : "Upload invoices first"; }
+    if(!document.querySelector(".recipe-ingredient-row")) addRecipeRow();
+    refreshIngredientSelects();
+  }catch(e){
+    if(badge) badge.textContent = "Database setup needed";
+  }
+}
+
+function unitOptions(base){
+  if(base==="g") return ["g","kg"];
+  if(base==="ml") return ["ml","l"];
+  if(base==="each") return ["each"];
+  return [base || "unit"];
+}
+
+function addRecipeRow(){
+  const wrap=document.getElementById("recipeRows");
+  if(!wrap) return;
+  const row=document.createElement("div");
+  row.className="recipe-ingredient-row";
+  row.style.cssText="display:grid;grid-template-columns:2.3fr .8fr .8fr auto;gap:8px;margin-top:8px";
+  row.innerHTML=`
+    <select class="ingredientSelect" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></select>
+    <input class="ingredientQty" type="number" step="0.01" min="0" placeholder="Qty" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px">
+    <select class="ingredientUnit" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></select>
+    <button class="btn removeRow" type="button">×</button>`;
+  wrap.appendChild(row);
+  refreshIngredientSelect(row.querySelector(".ingredientSelect"));
+  row.querySelector(".ingredientSelect").addEventListener("change",()=>syncUnits(row));
+  row.querySelector(".removeRow").addEventListener("click",()=>row.remove());
+  syncUnits(row);
+}
+
+function refreshIngredientSelects(){
+  document.querySelectorAll(".ingredientSelect").forEach(refreshIngredientSelect);
+}
+function refreshIngredientSelect(sel){
+  const old=sel.value;
+  sel.innerHTML='<option value="">Choose ingredient</option>'+ingredientCache.map(i=>
+    `<option value="${i.id}">${escapeHtml(i.display_name)} · ${i.base_unit_cost!=null ? moneyUnit(i.base_unit_cost,i.base_unit) : "needs unit review"}</option>`
+  ).join("");
+  if(old) sel.value=old;
+}
+function syncUnits(row){
+  const id=Number(row.querySelector(".ingredientSelect").value);
+  const ing=ingredientCache.find(x=>Number(x.id)===id);
+  const unitSel=row.querySelector(".ingredientUnit");
+  unitSel.innerHTML=unitOptions(ing?.base_unit).map(u=>`<option value="${u}">${u}</option>`).join("");
+}
+function moneyUnit(v,u){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return "—";
+  return `$${n<0.01?n.toFixed(4):n.toFixed(2)}/${u||"unit"}`;
+}
+
+document.getElementById("addIngredientBtn")?.addEventListener("click",addRecipeRow);
+
+document.getElementById("saveRecipeBtn")?.addEventListener("click",async()=>{
+  const name=document.getElementById("recipeName").value.trim();
+  const selling=Number(document.getElementById("sellingPrice").value||0);
+  const yieldPortions=Number(document.getElementById("yieldPortions").value||1);
+  const items=[...document.querySelectorAll(".recipe-ingredient-row")].map(row=>({
+    ingredient_id:Number(row.querySelector(".ingredientSelect").value),
+    quantity:Number(row.querySelector(".ingredientQty").value),
+    unit:row.querySelector(".ingredientUnit").value
+  })).filter(x=>x.ingredient_id && x.quantity>0);
+  const msg=document.getElementById("recipeMessage");
+  if(!name || !items.length){ msg.textContent="Enter a dish name and at least one ingredient."; return; }
+  msg.textContent="Costing recipe…";
+  try{
+    const r=await fetch("/api/recipes",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+      name,selling_price:selling,yield_portions:yieldPortions,items
+    })});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||"Could not save recipe");
+    msg.textContent=`Saved. Current portion cost ${money(data.recipe.portion_cost)}.`;
+    document.getElementById("recipeName").value="";
+    document.getElementById("sellingPrice").value="";
+    document.getElementById("recipeRows").innerHTML="";
+    addRecipeRow();
+    await loadRecipes();
+  }catch(e){ msg.textContent=e.message; }
+});
+
+async function loadRecipes(){
+  const box=document.getElementById("recipeList");
+  if(!box) return;
+  try{
+    const r=await fetch("/api/recipes");
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||"Could not load recipes");
+    const recipes=data.recipes||[];
+    if(!recipes.length){ box.innerHTML='<div class="muted">No recipes yet. Build your first one above.</div>'; return; }
+    box.innerHTML=recipes.map(rec=>`
+      <div class="leak" style="align-items:start">
+        <div>
+          <div class="leak-title">${escapeHtml(rec.name)}</div>
+          <div class="evidence">${rec.items.map(i=>`${escapeHtml(i.display_name)} ${i.quantity}${escapeHtml(i.unit)}`).join(" · ")}</div>
+          <div class="evidence">Current portion cost ${money(rec.portion_cost)} · Sell ${money(rec.selling_price)} · Target sell @28% ${money(rec.target_price_28)}</div>
+        </div>
+        <div class="impact">
+          ${rec.food_cost_pct!=null ? `${Number(rec.food_cost_pct).toFixed(1)}%<div class="muted" style="font-size:10px">food cost</div>` : money(rec.portion_cost)}
+          <button class="btn" style="margin-top:8px;padding:6px 9px" onclick="deleteRecipe(${rec.id})">Delete</button>
+        </div>
+      </div>`).join("");
+  }catch(e){ box.innerHTML=`<div class="muted">${escapeHtml(e.message)}</div>`; }
+}
+async function deleteRecipe(id){
+  await fetch(`/api/recipes/${id}`,{method:"DELETE"});
+  loadRecipes();
+}
+loadIngredients();
+loadRecipes();
+
+</script>
+
+</body></html>
