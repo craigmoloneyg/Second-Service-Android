@@ -306,6 +306,43 @@ function round(v) {
   return v == null ? null : Math.round(v * 100) / 100;
 }
 __name(round, "round");
+
+async function createActionPlan(request, env) {
+  let body = {};
+  try { body = await request.json(); } catch { return json({ error: "Invalid action plan data." }, 400); }
+  const title = String(body.title || "Price 2 Plate profit recovery plan").trim().slice(0, 160);
+  const focus = String(body.focus || "profit recovery").trim().slice(0, 500);
+  const evidence = String(body.evidence || "").trim().slice(0, 9000);
+  const steps = [
+    { day: "Today · Baseline", title: "Confirm the numbers", detail: "Record food cost, labour percentage, sales, waste and gross profit so every change has a measurable starting point." },
+    { day: "Days 1–7 · Purchasing", title: "Close purchasing leaks", detail: "Review supplier price movements, check yields and establish a receiving and invoice review routine." },
+    { day: "Days 8–14 · Labour", title: "Align labour to demand", detail: "Match rosters to demand by service, remove avoidable overlap and test one labour-saving change at a time." },
+    { day: "Days 15–30 · Menu", title: "Improve menu margin", detail: "Cost the highest-volume dishes, test evidence-backed portion or substitute changes and review pricing." },
+    { day: "Days 31–90 · Measure", title: "Keep what works", detail: "Track food cost, labour, waste and gross profit weekly; keep changes that improve margin without harming service." }
+  ];
+  const plan = { id: crypto.randomUUID(), title, focus, evidence, steps, status: "draft", created_at: new Date().toISOString() };
+  if (!env.DB) return json({ plan, saved: false }, 201);
+  try {
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS action_plans (id TEXT PRIMARY KEY, title TEXT NOT NULL, focus TEXT, evidence TEXT, steps_json TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL)").run();
+    await env.DB.prepare("INSERT INTO action_plans (id,title,focus,evidence,steps_json,status,created_at) VALUES (?,?,?,?,?,?,?)").bind(plan.id, plan.title, plan.focus, plan.evidence, JSON.stringify(plan.steps), plan.status, plan.created_at).run();
+    return json({ plan, saved: true }, 201);
+  } catch (error) {
+    return json({ plan, saved: false, warning: "Plan is ready but could not be persisted yet." }, 201);
+  }
+}
+__name(createActionPlan, "createActionPlan");
+async function listActionPlans(env) {
+  if (!env.DB) return json({ plans: [] });
+  try {
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS action_plans (id TEXT PRIMARY KEY, title TEXT NOT NULL, focus TEXT, evidence TEXT, steps_json TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL)").run();
+    const { results = [] } = await env.DB.prepare("SELECT id,title,focus,evidence,steps_json,status,created_at FROM action_plans ORDER BY created_at DESC LIMIT 25").all();
+    return json({ plans: results.map((row) => ({ ...row, steps: JSON.parse(row.steps_json || "[]") })) });
+  } catch {
+    return json({ plans: [] });
+  }
+}
+__name(listActionPlans, "listActionPlans");
+
 function outputText(r) {
   if (typeof r.output_text === "string" && r.output_text) return r.output_text;
   for (const item of r.output || []) {
