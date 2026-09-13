@@ -29,8 +29,50 @@ function costRecipe(recipe,ingredients) {
   const portion=batch===null?null:batch/recipe.yield_portions;
   return {...recipe,items,batch_cost:batch,portion_cost:portion,food_cost_pct:portion!==null&&recipe.selling_price>0?portion/recipe.selling_price*100:null,gross_profit:portion===null?null:recipe.selling_price-portion,target_price_28:portion===null?null:portion/.28,target_price_30:portion===null?null:portion/.30};
 }
+
+async function ensureAuthTables(env){
+  if(!env.DB) return;
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_accounts (id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL,password_salt TEXT NOT NULL,workspace_id TEXT UNIQUE NOT NULL,created_at TEXT NOT NULL)").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_sessions (token TEXT PRIMARY KEY,account_id TEXT NOT NULL,expires_at TEXT NOT NULL)").run();
+}
+const tokenHex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2,"0")).join("");
+const b64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+async function hashPassword(password,salt){ const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveBits"]); const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:120000,hash:"SHA-256"},key,256); return b64(bits); }
+async function authUser(env,cookie){
+  const token=cookie.match(/(?:^|;\\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];
+  if(!token||!env.DB) return null;
+  const row=await env.DB.prepare("SELECT a.id,a.email,a.workspace_id,s.expires_at FROM p2p_sessions s JOIN p2p_accounts a ON a.id=s.account_id WHERE s.token=?").bind(token).first();
+  if(!row||Date.parse(row.expires_at)<=Date.now()) return null;
+  return row;
+}
+async function authApi(request,env,action){
+  if(!env.DB) return reply({error:"Account storage is not configured yet."},503);
+  if(action==="signout") return reply({ok:true},200,{"Set-Cookie":"p2p_auth=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0"});
+  let body={}; try{body=await request.json();}catch{}
+  const email=String(body.email||"").trim().toLowerCase(), password=String(body.password||"");
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return reply({error:"Enter a valid email address."},400);
+  if(password.length<10||password.length>200) return reply({error:"Use a password between 10 and 200 characters."},400);
+  if(action==="signup"){
+    const existing=await env.DB.prepare("SELECT id FROM p2p_accounts WHERE email=?").bind(email).first();
+    if(existing) return reply({error:"An account with that email already exists. Sign in instead."},409);
+    const id=tokenHex(), salt=tokenHex(), workspaceId=tokenHex(), hash=await hashPassword(password,salt), now=new Date().toISOString();
+    await env.DB.prepare("INSERT INTO p2p_accounts (id,email,password_hash,password_salt,workspace_id,created_at) VALUES (?,?,?,?,?,?)").bind(id,email,hash,salt,workspaceId,now).run();
+    const token=tokenHex(), expires=new Date(Date.now()+2592000000).toISOString();
+    await env.DB.prepare("INSERT INTO p2p_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,id,expires).run();
+    return reply({ok:true,email},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000"});
+  }
+  const account=await env.DB.prepare("SELECT * FROM p2p_accounts WHERE email=?").bind(email).first();
+  if(!account||!(await hashPassword(password,account.password_salt)===account.password_hash)) return reply({error:"Email or password is incorrect."},401);
+  const token=tokenHex(), expires=new Date(Date.now()+2592000000).toISOString();
+  await env.DB.prepare("INSERT INTO p2p_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,account.id,expires).run();
+  return reply({ok:true,email},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000"});
+}
 export async function api(request,env,extractInvoice,deriveBaseCost,outputText) {
   const url=new URL(request.url);
+  await ensureAuthTables(env);
+  if(url.pathname==='/api/auth/signup') return authApi(request,env,'signup');
+  if(url.pathname==='/api/auth/signin') return authApi(request,env,'signin');
+  if(url.pathname==='/api/auth/signout') return authApi(request,env,'signout');
   const origin=url.origin;
   if(request.method!=='GET'&&request.headers.get('origin')&&request.headers.get('origin')!==origin) return reply({error:'Request origin is not allowed.'},403);
   const cookie=request.headers.get('cookie')||'';
