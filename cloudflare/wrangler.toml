@@ -9,8 +9,8 @@ binding = "ASSETS"
 run_worker_first = true
 
 [vars]
-SQUARE_APPLICATION_ID = "sandbox-sq0idb-EnUpCW6_2pJQKHmw9b2TCw"
-SQUARE_ENVIRONMENT = "sandbox"
+SQUARE_APPLICATION_ID = "sq0idp-AoYcPwCZmD4XTEafx3XGIg"
+SQUARE_ENVIRONMENT = "production"
 
 [[d1_databases]]
 binding = "DB"
