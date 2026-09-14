@@ -1,11 +1,15 @@
 name = "second-service-profit-intelligence"
-main = "worker.js"
+main = "square-worker.mjs"
 preview_urls = false
 compatibility_date = "2026-09-13"
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
+
+[vars]
+SQUARE_APPLICATION_ID = "sandbox-sq0idb-EnUpCW6_2pJQKHmw9b2TCw"
+SQUARE_ENVIRONMENT = "sandbox"
 
 [[d1_databases]]
 binding = "DB"
