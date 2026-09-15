@@ -2,6 +2,7 @@ name = "second-service-profit-intelligence"
 main = "square-worker.mjs"
 preview_urls = false
 compatibility_date = "2026-09-13"
+keep_vars = true
 
 [vars]
 SQUARE_APPLICATION_ID = "sandbox-sq0idb-EnUpCW6_2pJQKHmw9b2TCw"
