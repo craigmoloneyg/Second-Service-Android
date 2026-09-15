@@ -4,8 +4,9 @@ import {handleCommercial} from './commercial.mjs';
 
 const diagnostic=(env,url)=>{
   const secret=String(env.SQUARE_APPLICATION_SECRET||'').trim();
-  const environment=(env.SQUARE_ENVIRONMENT||'sandbox')!=='production'?'sandbox':'production';
   const secretType=secret.startsWith('sandbox-sq0cs')?'sandbox-application-secret':secret.startsWith('sq0cs')?'production-application-secret':secret?'unknown-secret-format':'missing';
+  const configured=String(env.SQUARE_ENVIRONMENT||'sandbox').toLowerCase();
+  const environment=secretType==='sandbox-application-secret'?'sandbox':secretType==='production-application-secret'?'production':configured==='production'?'production':'sandbox';
   return new Response(JSON.stringify({
     ok:true,
     environment,
@@ -13,7 +14,7 @@ const diagnostic=(env,url)=>{
     application_secret_configured:Boolean(secret),
     application_secret_type:secretType,
     redirect_uri:url.origin+'/api/square/callback',
-    diagnostic_version:'p2p-square-2026-09-15-1'
+    diagnostic_version:'p2p-square-2026-09-15-3'
   }),{headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
 };
 
