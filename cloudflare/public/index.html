@@ -71,18 +71,6 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
     <div class="top-actions"><button class="btn ghost" id="accountBtn">Sign in</button><button class="btn ghost" id="exportReportBtn">Export report</button><button class="btn primary">Create action plan</button></div>
   </header>
 
-  <section class="card" id="square-direct" style="margin-top:18px">
-    <div class="card-head">
-      <div>
-        <div class="kicker">Live POS integration</div>
-        <h2>Square</h2>
-        <div class="muted">Connect Square to bring sales and menu activity into Price 2 Plate.</div>
-      </div>
-      <span class="pill blue">Sandbox</span>
-    </div>
-    <a class="btn primary" href="/api/square/connect-direct">Connect Square</a>
-  </section>
-
   <section class="card" id="bar"><div class="card-head"><div><h2>Bar operations</h2><div class="muted">Track beverage costs, pour margins and bar labour opportunities.</div></div><span class="pill green">0 items</span></div><div class="grid-3"><div><div class="label">Bar items</div><div class="value">0</div><p class="muted">Add spirits, wine, beer and mixers through invoices.</p></div><div><div class="label">Pour cost</div><div class="value">$0</div><p class="muted">No beverage pricing imported yet.</p></div><div><div class="label">Stock variance</div><div class="value">0%</div><p class="muted">Complete a bar stocktake to measure variance.</p></div></div><div class="row" style="margin-top:16px"><button class="btn primary" type="button" id="barAnalystBtn">Ask the Analyst about the bar</button><button class="btn ghost" type="button" id="barStockBtn">Start bar stocktake</button></div><div id="barResult" class="p2p-ai-result" hidden></div></section>\n  <section id="account-panel" class="card" hidden style="max-width:520px;margin:18px auto"><div class="section-head"><div><div class="kicker">Private account</div><h2 id="account-title">Create your account</h2><p class="muted">Your recipes, invoices and plans stay in your private workspace.</p></div></div><form id="account-form"><label>Email<input id="account-email" type="email" autocomplete="email" required></label><label>Password<input id="account-password" type="password" minlength="10" autocomplete="new-password" required><small class="muted">Use at least 10 characters.</small></label><div class="row"><button class="btn primary" id="account-submit" type="submit">Create account</button><button class="btn ghost" id="account-toggle" type="button">Already have an account? Sign in</button></div><p id="account-message" role="status" class="muted"></p></form></section>
   <section class="kpis">
     <div class="card kpi"><div class="label">Venue health score</div><div class="value">0/100</div><div class="delta bad">No data yet</div></div>
