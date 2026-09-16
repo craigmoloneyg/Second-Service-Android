@@ -6,6 +6,8 @@ const state=window.invoiceBatchState||{running:false,stop:false};
 window.invoiceBatchState=state;
 const $=id=>document.getElementById(id);
 const files=()=>Array.from($('invoiceFile')?.files||[]);
+let selectedOverride=null;
+const selectedFiles=()=>selectedOverride||files();
 const text=(tag,value,parent)=>{const n=document.createElement(tag);n.textContent=String(value??'—');parent.append(n);return n;};
 const money=v=>v==null||v===''?'—':Number.isFinite(Number(v))?new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(Number(v)):String(v);
 
@@ -25,7 +27,7 @@ function setup(){
 }
 function update(){
   const button=$('analyseInvoiceBtn'),status=$('aiStatus');if(!button||!status)return;
-  const f=files();
+  const f=selectedFiles();
   button.disabled=state.running||f.length>MAX_FILES;
   button.textContent=state.running?'Processing invoices…':f.length?('Analyse '+f.length+' invoice'+(f.length===1?'':'s')):'Analyse invoices';
   if(!state.running)status.textContent=f.length>MAX_FILES?'Choose 75 files or fewer':f.length?(f.length+' selected'):'Ready';
@@ -48,7 +50,7 @@ function renderResult(parent,data){
 async function runBatch(){
   if(state.running)return;
   const input=$('invoiceFile'),button=$('analyseInvoiceBtn'),status=$('aiStatus'),output=$('invoiceResult');
-  const selected=files();
+  const selected=selectedFiles();
   if(!selected.length){status.textContent='Choose an invoice first';return;}
   if(selected.length>MAX_FILES){status.textContent='Choose 75 files or fewer';return;}
   state.running=true;state.stop=false;input.disabled=true;button.disabled=true;
@@ -78,12 +80,41 @@ async function runBatch(){
     await Promise.all(Array.from({length:Math.min(CONCURRENCY,selected.length)},worker));
     status.textContent=failed?'Complete · '+failed+' need attention':succeeded+' invoices complete';
     window.dispatchEvent(new Event('p2p-data-changed'));
+    window.dispatchEvent(new Event('p2p-inventory-changed'));
   }finally{
-    state.running=false;input.disabled=false;button.disabled=false;input.value='';
+    state.running=false;input.disabled=false;button.disabled=false;input.value='';selectedOverride=null;
     button.textContent='Analyse invoices';
     try{sessionStorage.setItem('p2pInvoiceBatch',JSON.stringify({running:false,total:selected.length,completed,succeeded,failed,saved,updated_at:new Date().toISOString()}));}catch{}
   }
 }
+
+async function loadInventory(){
+  const rows=$('inventoryRows'),status=$('inventoryStatus');if(!rows||!status)return;
+  try{
+    const r=await fetch('/api/inventory',{credentials:'same-origin',cache:'no-store'});
+    const j=await r.json();if(!r.ok)throw new Error(j.error||'Could not load inventory.');
+    const items=j.inventory||[];
+    status.textContent=items.length+' items';
+    rows.innerHTML=items.length?items.map(x=>'<tr><td>'+String(x.display_name||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</td><td>'+String(x.supplier||'—').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</td><td class="right">'+Number(x.quantity_on_hand||0).toFixed(2).replace(/\.00$/,'')+'</td><td>'+String(x.unit||'unit')+'</td><td class="right">'+money(x.last_unit_price)+'</td><td>'+String(x.last_received_at||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="muted">No inventory received yet.</td></tr>';
+  }catch(e){status.textContent='Needs attention';rows.innerHTML='<tr><td colspan="6" class="muted">'+e.message+'</td></tr>';}
+}
+function setupCamera(){
+  const btn=$('invoiceCameraBtn'),cam=$('invoiceCameraFile');
+  if(!btn||!cam||btn.dataset.cameraReady)return;
+  btn.dataset.cameraReady='1';
+  btn.addEventListener('click',e=>{e.preventDefault();cam.click();});
+  cam.addEventListener('change',async()=>{
+    const captured=Array.from(cam.files||[]);
+    if(!captured.length)return;
+    selectedOverride=captured;
+    update();
+    await runBatch();
+    cam.value='';
+  });
+}
+window.addEventListener('p2p-inventory-changed',loadInventory);
+window.p2pLoadInventory=loadInventory;
+
 // Capture-phase delegation makes this survive any later DOM/button replacement.
 document.addEventListener('click',e=>{
   const btn=e.target?.closest?.('#analyseInvoiceBtn');
@@ -92,6 +123,6 @@ document.addEventListener('click',e=>{
   runBatch();
 },true);
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
-new MutationObserver(()=>{const b=$('analyseInvoiceBtn');if(b&&!b.dataset.batchReady)setup();}).observe(document.documentElement,{childList:true,subtree:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setup();setupCamera();loadInventory();});else{setup();setupCamera();loadInventory();}
+new MutationObserver(()=>{const b=$('analyseInvoiceBtn');if(b&&!b.dataset.batchReady)setup();setupCamera();}).observe(document.documentElement,{childList:true,subtree:true});
 })();
