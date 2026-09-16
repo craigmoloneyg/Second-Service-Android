@@ -1,2 +1,214 @@
-(()=>{const $=id=>document.getElementById(id);async function api(p,o){const r=await fetch(p,{credentials:'same-origin',...o});const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}function add(){if($('commercial-settings'))return;const host=document.querySelector('main')||document.body,s=document.createElement('section');s.id='commercial-settings';s.className='card';s.dataset.p2pPage='workspace';s.style.marginTop='14px';s.innerHTML=`<div class="card-head"><div><div class="kicker">Membership & integrations</div><h2>Price 2 Plate account</h2><div class="muted">14-day free trial. No card required. Cancel anytime.</div></div><span class="pill blue" id="planBadge">Sign in</span></div><div id="planBox" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card"><h3>Regular</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$99<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Invoice AI, live ingredient and recipe costing, Square, profit dashboard, purchasing alerts and AI Analyst.</div><button class="btn primary" id="regularBtn" style="margin-top:12px">Choose Regular</button></div><div class="card"><h3>Gold</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$249<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Everything in Regular plus enhanced AI and up to 4 real-consultant cases each month.</div><button class="btn primary" id="goldBtn" style="margin-top:12px">Choose Gold</button></div></div><div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><div class="card-head"><div><h2>MYOB</h2><div class="muted">Bring accounting P&L evidence into Price 2 Plate.</div></div><span class="pill blue" id="myobBadge">Checking…</span></div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="myobConnect">Connect MYOB</button><button class="btn" id="myobSync" hidden>Sync P&L</button><button class="btn ghost" id="myobDisconnect" hidden>Disconnect</button></div><div class="muted" id="myobMsg" style="margin-top:10px"></div><div id="myobCompanyLogin" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)"><div class="muted" style="margin-bottom:8px">MYOB company-file login</div><div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px"><input id="myobCfUser" autocomplete="username" placeholder="Company-file username"><input id="myobCfPass" type="password" autocomplete="current-password" placeholder="Company-file password"><button class="btn" id="myobCfSave" type="button">Save & verify</button></div></div></div><div id="consultantBox" hidden style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><div class="card-head"><div><h2>Ask a Real Consultant</h2><div class="muted">Gold includes up to 4 consultant cases per month. This is human advice, separate from AI.</div></div></div><input id="consultantSubject" placeholder="Subject" style="width:100%;margin-bottom:8px"><textarea id="consultantQuestion" placeholder="What do you want a consultant to review?" style="width:100%;min-height:100px"></textarea><button class="btn primary" id="consultantSend" style="margin-top:8px">Send to consultant</button><div class="muted" id="consultantMsg" style="margin-top:8px"></div></div>`;host.appendChild(s);bind();status()}async function status(){try{const x=await api('/api/billing/status'),e=x.subscription;$('planBadge').textContent=e.plan==='gold'?'Gold':e.plan==='regular'?'Regular':e.status==='trial'?'Free trial':e.status;$('planBadge').className='pill '+(e.active?'green':'orange');$('consultantBox').hidden=!e.gold}catch(e){$('planBadge').textContent='Sign in to start trial'}try{const x=await api('/api/myob/status'),c=x.connected;$('myobBadge').textContent=c?'Connected':x.configured?'Ready to connect':'Setup required';$('myobBadge').className='pill '+(c?'green':'blue');$('myobConnect').hidden=c;$('myobSync').hidden=!c;$('myobDisconnect').hidden=!c;if(c){$('myobMsg').textContent='MYOB connected'+(x.last_sync_at?' • last sync '+new Date(x.last_sync_at).toLocaleString():'');$('myobCompanyLogin').hidden=!!x.company_login_saved}else $('myobCompanyLogin').hidden=true}catch(e){$('myobMsg').textContent=e.message}}function bind(){for(const [id,plan] of [['regularBtn','regular'],['goldBtn','gold']])$(id).onclick=async()=>{try{const x=await api('/api/billing/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});location.href=x.url}catch(e){alert(e.message)}};$('myobConnect').onclick=async()=>{try{const x=await api('/api/myob/connect',{method:'POST'});location.href=x.url}catch(e){$('myobMsg').textContent=e.message}};$('myobSync').onclick=async()=>{try{$('myobMsg').textContent='Syncing MYOB…';await api('/api/myob/sync',{method:'POST'});$('myobMsg').textContent='MYOB P&L synced.';status()}catch(e){$('myobMsg').textContent=e.message}};
-$('myobCfSave').onclick=async()=>{try{$('myobMsg').textContent='Verifying MYOB company file…';await api('/api/myob/company-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('myobCfUser').value,password:$('myobCfPass').value})});$('myobCfPass').value='';$('myobMsg').textContent='MYOB company file verified.';status()}catch(e){$('myobMsg').textContent=e.message}};$('myobDisconnect').onclick=async()=>{await api('/api/myob/disconnect',{method:'POST'});status()};$('consultantSend').onclick=async()=>{try{await api('/api/consultant/questions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject:$('consultantSubject').value,question:$('consultantQuestion').value})});$('consultantMsg').textContent='Sent to a real consultant.';$('consultantQuestion').value=''}catch(e){$('consultantMsg').textContent=e.message}}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add()})();
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path,options={}){
+  const r=await fetch(path,{credentials:'same-origin',...options});
+  let j={};try{j=await r.json();}catch{}
+  if(!r.ok)throw new Error(j.error||'Request failed');
+  return j;
+}
+function fieldStyle(){return 'width:100%;background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px';}
+
+let consultantEnabled=false,currentThread=null,pollTimer=null;
+
+function add(){
+  if(!$('commercial-settings')){
+    const host=document.querySelector('main')||document.body,s=document.createElement('section');
+    s.id='commercial-settings';s.className='card';s.dataset.p2pPage='workspace';s.style.marginTop='14px';
+    s.innerHTML=`
+      <div class="card-head"><div><div class="kicker">Membership & integrations</div><h2>Price 2 Plate account</h2><div class="muted">14-day free trial. No card required. Cancel anytime.</div></div><span class="pill blue" id="planBadge">Sign in</span></div>
+      <div id="planBox" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="card"><h3>Regular</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$99<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Invoice AI, live ingredient and recipe costing, Square, profit dashboard, purchasing alerts and AI Analyst.</div><button class="btn primary" id="regularBtn" style="margin-top:12px">Choose Regular</button></div>
+        <div class="card"><h3>Gold</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$249<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Everything in Regular plus enhanced AI and live consultant messaging with up to 4 new cases each month.</div><button class="btn primary" id="goldBtn" style="margin-top:12px">Choose Gold</button></div>
+      </div>
+
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="card-head"><div><h2>MYOB</h2><div class="muted">Connect live when MYOB approves the app, or import MYOB exports now for a full Price 2 Plate test.</div></div><span class="pill blue" id="myobBadge">Checking…</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="myobConnect">Connect MYOB</button><button class="btn" id="myobSync" hidden>Sync P&L</button><button class="btn ghost" id="myobDisconnect" hidden>Disconnect</button></div>
+        <div class="muted" id="myobMsg" style="margin-top:10px"></div>
+
+        <div id="myobImportBridge" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+          <div class="kicker">Temporary test bridge</div>
+          <h3 style="margin:5px 0 8px">Import MYOB exports</h3>
+          <div class="muted" style="margin-bottom:10px">Export CSV or JSON from MYOB and load it here. Imported accounting data is supplied to the Price 2 Plate AI workers alongside Square, invoices and recipes.</div>
+          <div style="display:grid;grid-template-columns:minmax(150px,.6fr) minmax(220px,1fr) auto;gap:8px">
+            <select id="myobImportKind" style="${fieldStyle()}"><option value="profit_and_loss">Profit & Loss</option><option value="purchases">Purchases</option><option value="inventory">Inventory</option><option value="general_ledger">General Ledger</option><option value="other">Other MYOB export</option></select>
+            <input id="myobImportFile" type="file" accept=".csv,.json,.txt,text/csv,application/json,text/plain" style="${fieldStyle()}">
+            <button class="btn primary" id="myobImportBtn" type="button">Import for test</button>
+          </div>
+          <div id="myobImportMsg" class="muted" style="margin-top:10px"></div>
+          <div id="myobImportList" style="margin-top:10px"></div>
+        </div>
+
+        <div id="myobCompanyLogin" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+          <div class="muted" style="margin-bottom:8px">MYOB company-file login</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
+            <input id="myobCfUser" autocomplete="username" placeholder="Company-file username" style="${fieldStyle()}">
+            <input id="myobCfPass" type="password" autocomplete="current-password" placeholder="Company-file password" style="${fieldStyle()}">
+            <button class="btn" id="myobCfSave" type="button">Save & verify</button>
+          </div>
+        </div>
+      </div>
+    `;
+    host.appendChild(s);
+  }
+
+  if(!$('live-consultant')){
+    const host=document.querySelector('main')||document.body,s=document.createElement('section');
+    s.id='live-consultant';s.className='card';s.dataset.p2pPage='consultant';s.style.marginTop='14px';
+    s.innerHTML=`
+      <div class="card-head"><div><div class="kicker">Human support</div><h2>Live consultant</h2><div class="muted">A persistent message thread with a real hospitality consultant. This is separate from the AI Analyst.</div></div><span class="pill blue" id="consultantBadge">Checking access…</span></div>
+      <div id="consultantLocked" class="muted">Sign in to your Price 2 Plate account to open consultant messaging.</div>
+      <div id="consultantApp" hidden>
+        <div style="display:grid;grid-template-columns:minmax(220px,.35fr) minmax(0,1fr);gap:14px">
+          <div>
+            <div style="display:grid;gap:8px">
+              <input id="consultantSubject" placeholder="New case subject" style="${fieldStyle()}">
+              <textarea id="consultantQuestion" placeholder="Describe what you want reviewed…" style="${fieldStyle()};min-height:110px"></textarea>
+              <button class="btn primary" id="consultantNewCase" type="button">Start new case</button>
+              <div class="muted" id="consultantMsg"></div>
+            </div>
+            <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><div class="kicker">Conversations</div><div id="consultantThreads" style="display:grid;gap:7px;margin-top:8px"></div></div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:12px;min-height:420px;display:flex;flex-direction:column;overflow:hidden">
+            <div id="consultantThreadHead" style="padding:14px;border-bottom:1px solid var(--line)"><strong>Select a conversation</strong></div>
+            <div id="consultantMessages" style="flex:1;padding:14px;overflow:auto;display:grid;gap:10px;align-content:start"><div class="muted">Your message history will appear here.</div></div>
+            <div style="padding:12px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:8px">
+              <textarea id="consultantReply" placeholder="Message your consultant…" style="${fieldStyle()};min-height:70px" disabled></textarea>
+              <button class="btn primary" id="consultantReplyBtn" type="button" disabled>Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    host.appendChild(s);
+  }
+
+  bind();
+  status();
+}
+
+async function loadImports(){
+  const box=$('myobImportList');if(!box)return;
+  try{
+    const x=await api('/api/myob/imports');
+    const items=x.imports||[];
+    box.innerHTML=items.length?items.map(i=>'<div class="evidence">'+esc(i.kind.replaceAll('_',' '))+' · '+esc(i.filename)+' · '+new Date(i.imported_at).toLocaleString()+'</div>').join(''):'<div class="muted">No MYOB test imports yet.</div>';
+  }catch(e){box.innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+}
+
+async function loadThreads(selectId){
+  const box=$('consultantThreads');if(!box||!consultantEnabled)return;
+  try{
+    const x=await api('/api/consultant/questions'),items=x.requests||[];
+    box.innerHTML=items.length?items.map(t=>'<button type="button" class="btn consultant-thread" data-id="'+esc(t.id)+'" style="text-align:left"><strong>'+esc(t.subject||'Consultant case')+'</strong><div class="evidence">'+esc(t.status||'open')+' · '+new Date(t.created_at).toLocaleDateString()+'</div></button>').join(''):'<div class="muted">No consultant conversations yet.</div>';
+    box.querySelectorAll('.consultant-thread').forEach(b=>b.onclick=()=>openThread(b.dataset.id));
+    if(selectId)await openThread(selectId);
+    else if(currentThread&&items.some(x=>x.id===currentThread))await openThread(currentThread,false);
+  }catch(e){box.innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+}
+
+async function openThread(id,scroll=true){
+  if(!id)return;currentThread=id;
+  try{
+    const x=await api('/api/consultant/messages?request_id='+encodeURIComponent(id));
+    $('consultantThreadHead').innerHTML='<strong>'+esc(x.thread.subject||'Consultant case')+'</strong><div class="evidence">'+esc(x.thread.status||'open')+'</div>';
+    const msgs=x.messages||[];
+    $('consultantMessages').innerHTML=msgs.length?msgs.map(m=>{
+      const mine=m.sender==='client';
+      return '<div style="max-width:82%;'+(mine?'margin-left:auto;background:#13243a':'margin-right:auto;background:#0a1726')+';border:1px solid var(--line);border-radius:12px;padding:10px 12px"><div class="kicker">'+(mine?'YOU':'CONSULTANT')+'</div><div style="white-space:pre-wrap;margin-top:4px">'+esc(m.body)+'</div><div class="evidence">'+new Date(m.created_at).toLocaleString()+'</div></div>';
+    }).join(''):'<div class="muted">No messages yet.</div>';
+    $('consultantReply').disabled=false;$('consultantReplyBtn').disabled=false;
+    if(scroll)$('consultantMessages').scrollTop=$('consultantMessages').scrollHeight;
+  }catch(e){$('consultantMessages').innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+}
+
+async function status(){
+  try{
+    const x=await api('/api/billing/status'),e=x.subscription;
+    $('planBadge').textContent=e.plan==='gold'?'Gold':e.plan==='regular'?'Regular':e.status==='trial'?'Free trial':e.status;
+    $('planBadge').className='pill '+(e.active?'green':'orange');
+    consultantEnabled=Boolean(e.features?.consultant);
+    $('consultantBadge').textContent=consultantEnabled?(e.status==='trial'?'Trial access':'Gold access'):'Gold feature';
+    $('consultantBadge').className='pill '+(consultantEnabled?'green':'orange');
+    $('consultantLocked').hidden=consultantEnabled;
+    $('consultantApp').hidden=!consultantEnabled;
+    if(consultantEnabled)loadThreads();
+  }catch(e){
+    $('planBadge').textContent='Sign in to start trial';
+    consultantEnabled=false;
+    $('consultantBadge').textContent='Sign in';
+    $('consultantLocked').hidden=false;$('consultantApp').hidden=true;
+  }
+
+  try{
+    const x=await api('/api/myob/status'),connected=x.connected;
+    $('myobBadge').textContent=connected?'Connected':x.configured?'Ready to connect':'Developer approval pending';
+    $('myobBadge').className='pill '+(connected?'green':'blue');
+    $('myobConnect').hidden=connected;
+    $('myobSync').hidden=!connected;
+    $('myobDisconnect').hidden=!connected;
+    if(connected){
+      $('myobMsg').textContent='MYOB connected'+(x.last_sync_at?' · last sync '+new Date(x.last_sync_at).toLocaleString():'');
+      $('myobCompanyLogin').hidden=Boolean(x.company_login_saved);
+    }else{
+      $('myobCompanyLogin').hidden=true;
+      $('myobMsg').textContent=x.configured?'Live MYOB connection is ready.':'Use the import bridge below while MYOB developer approval is pending.';
+    }
+  }catch(e){$('myobMsg').textContent=e.message;}
+  loadImports();
+}
+
+function bind(){
+  if($('regularBtn')&&!$('regularBtn').dataset.ready){
+    for(const [id,plan] of [['regularBtn','regular'],['goldBtn','gold']]){
+      const b=$(id);b.dataset.ready='1';b.onclick=async()=>{try{const x=await api('/api/billing/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});location.href=x.url}catch(e){alert(e.message)}};
+    }
+  }
+
+  if($('myobConnect')&&!$('myobConnect').dataset.ready){
+    $('myobConnect').dataset.ready='1';
+    $('myobConnect').onclick=async()=>{try{const x=await api('/api/myob/connect',{method:'POST'});location.href=x.url}catch(e){$('myobMsg').textContent=e.message}};
+    $('myobSync').onclick=async()=>{try{$('myobMsg').textContent='Syncing MYOB…';await api('/api/myob/sync',{method:'POST'});$('myobMsg').textContent='MYOB P&L synced.';status()}catch(e){$('myobMsg').textContent=e.message}};
+    $('myobDisconnect').onclick=async()=>{try{await api('/api/myob/disconnect',{method:'POST'});status()}catch(e){$('myobMsg').textContent=e.message}};
+    $('myobCfSave').onclick=async()=>{try{$('myobMsg').textContent='Verifying MYOB company file…';await api('/api/myob/company-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('myobCfUser').value,password:$('myobCfPass').value})});$('myobCfPass').value='';$('myobMsg').textContent='MYOB company file verified.';status()}catch(e){$('myobMsg').textContent=e.message}};
+    $('myobImportBtn').onclick=async()=>{
+      const file=$('myobImportFile').files?.[0],msg=$('myobImportMsg');
+      if(!file){msg.textContent='Choose a MYOB CSV or JSON export first.';return;}
+      msg.textContent='Importing '+file.name+'…';$('myobImportBtn').disabled=true;
+      try{
+        const r=await fetch('/api/myob/import',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type||'text/csv','X-Filename':encodeURIComponent(file.name),'X-MYOB-Kind':$('myobImportKind').value},body:file});
+        const x=await r.json();if(!r.ok)throw new Error(x.error||'MYOB import failed.');
+        msg.textContent='Imported '+x.filename+(x.rows!=null?' · '+x.rows+' rows':'')+'. It is now available to the AI workers.';
+        $('myobImportFile').value='';loadImports();
+        window.dispatchEvent(new Event('p2p-data-changed'));
+      }catch(e){msg.textContent=e.message;}finally{$('myobImportBtn').disabled=false;}
+    };
+  }
+
+  if($('consultantNewCase')&&!$('consultantNewCase').dataset.ready){
+    $('consultantNewCase').dataset.ready='1';
+    $('consultantNewCase').onclick=async()=>{
+      const msg=$('consultantMsg');msg.textContent='Opening case…';
+      try{
+        const x=await api('/api/consultant/questions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject:$('consultantSubject').value,question:$('consultantQuestion').value})});
+        $('consultantSubject').value='';$('consultantQuestion').value='';msg.textContent='Case opened.';
+        await loadThreads(x.id);
+      }catch(e){msg.textContent=e.message;}
+    };
+    $('consultantReplyBtn').onclick=async()=>{
+      const body=$('consultantReply').value.trim();if(!body||!currentThread)return;
+      $('consultantReplyBtn').disabled=true;
+      try{
+        await api('/api/consultant/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:currentThread,body})});
+        $('consultantReply').value='';await openThread(currentThread);
+      }catch(e){$('consultantMsg').textContent=e.message;}finally{$('consultantReplyBtn').disabled=false;}
+    };
+  }
+  clearInterval(pollTimer);
+  pollTimer=setInterval(()=>{if(consultantEnabled&&currentThread)openThread(currentThread,false)},20000);
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add();
+})();
