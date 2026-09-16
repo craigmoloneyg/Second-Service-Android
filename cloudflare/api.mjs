@@ -1,12 +1,12 @@
 // Public workspaces never query the legacy owner tables.
 const reply = (value, status = 200, headers = {}) => new Response(JSON.stringify(value), {status, headers: {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers}});
-const blank = () => ({ingredients:[],recipes:[],invoices:[],plans:[]});
+const blank = () => ({ingredients:[],recipes:[],invoices:[],inventory:[],plans:[]});
 async function workspace(env, id) {
   if (!env.DB) throw new Error('Workspace storage is unavailable. Please try again later.');
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS p2p_private_workspaces (id TEXT PRIMARY KEY, revision INTEGER NOT NULL DEFAULT 0, data TEXT NOT NULL)').run();
   const row = await env.DB.prepare('SELECT revision,data FROM p2p_private_workspaces WHERE id=?').bind(id).first();
   if (!row) return {data:blank(),revision:0};
-  return {data:JSON.parse(row.data),revision:row.revision};
+  const data=JSON.parse(row.data); if(!Array.isArray(data.inventory))data.inventory=[]; return {data,revision:row.revision};
 }
 async function save(env,id,record) {
   const data=JSON.stringify(record.data);
@@ -182,6 +182,10 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
         top_items:sales.slice(0,12).map(x=>({name:x.name,quantity:x.quantity,net_sales:(Number(x.net_sales_cents)||0)/100,food_cost_pct:x.actual_food_cost_pct,contribution:x.contribution,recipe_name:x.recipe_name||null}))
       });
     }
+    if(url.pathname==='/api/inventory'&&request.method==='GET') {
+      const rows=(data.inventory||[]).slice().sort((a,b)=>(Date.parse(b.last_received_at||'')||0)-(Date.parse(a.last_received_at||'')||0));
+      return reply({inventory:rows});
+    }
     if(url.pathname==='/api/ingredients'&&request.method==='GET') return reply({ingredients:data.ingredients});
     if(url.pathname==='/api/recipes'&&request.method==='GET') return reply({recipes:data.recipes.map(r=>costRecipe(r,data.ingredients))});
     if(url.pathname==='/api/purchasing/alerts') return reply({alerts:[]});
@@ -239,6 +243,31 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
             current_unit_price:item.unit_price,
             last_invoice_date:result.document_date||null
           });
+
+          const receivedQty=Number(item.quantity);
+          if(Number.isFinite(receivedQty)&&receivedQty!==0){
+            const invUnit=String(item.unit||'unit').trim()||'unit';
+            const stockKey=key+'|'+invUnit.toLowerCase();
+            let stock=d.inventory.find(x=>x.stock_key===stockKey);
+            if(!stock){
+              stock={
+                id:crypto.randomUUID(),
+                stock_key:stockKey,
+                ingredient_key:key,
+                display_name:item.description,
+                unit:invUnit,
+                quantity_on_hand:0
+              };
+              d.inventory.push(stock);
+            }
+            stock.display_name=item.description;
+            stock.supplier=result.supplier_or_source||stock.supplier||null;
+            stock.unit=invUnit;
+            stock.quantity_on_hand=Number(stock.quantity_on_hand||0)+receivedQty;
+            stock.last_unit_price=item.unit_price??stock.last_unit_price??null;
+            stock.last_invoice_number=result.document_number||null;
+            stock.last_received_at=result.document_date||new Date().toISOString();
+          }
         }
 
         try{
