@@ -146,23 +146,7 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
   if(url.pathname==='/api/auth/signup') return authApi(request,env,'signup');
   if(url.pathname==='/api/auth/signin') return authApi(request,env,'signin');
   if(url.pathname==='/api/auth/signout') return authApi(request,env,'signout');
-  if(url.pathname==='/api/auth/reset-password'&&request.method==='POST'){
-    try{
-      const body=await request.json(), email=String(body.email||'').trim().toLowerCase(), password=String(body.password||'');
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({error:'Enter a valid email address.'},400);
-      if(password.length<10||password.length>200) return reply({error:'Use a password between 10 and 200 characters.'},400);
-      await ensureAuthTables(env);
-      const account=await env.DB.prepare("SELECT * FROM p2p_accounts WHERE lower(email)=?").bind(email).first();
-      if(!account) return reply({error:'No account exists with that email yet. Create the account instead.'},404);
-      const salt=tokenHex(), hash=await hashPassword(password,salt);
-      await env.DB.prepare("UPDATE p2p_accounts SET password_hash=?,password_salt=? WHERE id=?").bind(hash,salt,account.id).run();
-      await env.DB.prepare("DELETE FROM p2p_sessions WHERE account_id=?").bind(account.id).run();
-      return authApi(new Request(request.url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password})}),env,'signin');
-    }catch(error){
-      console.error('Garnish reset error',error);
-      return reply({error:'Could not reset that account yet.'},503);
-    }
-  }
+
   const origin=url.origin;
   if(request.method!=='GET'&&request.headers.get('origin')&&request.headers.get('origin')!==origin) return reply({error:'Request origin is not allowed.'},403);
   const cookie=request.headers.get('cookie')||'';
