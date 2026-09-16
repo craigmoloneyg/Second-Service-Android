@@ -210,5 +210,72 @@ function bind(){
   pollTimer=setInterval(()=>{if(consultantEnabled&&currentThread)openThread(currentThread,false)},20000);
 }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add();
+
+async function addConsultantAdmin(){
+  let st;try{st=await api('/api/consultant/admin/status')}catch{return}
+  const mobile=document.querySelector('.p2p-mobile-nav select option[value="consultant-admin"]');
+  if(!st.admin){if(mobile)mobile.remove();return;}
+  const nav=document.querySelector('.nav');
+  if(nav&&!nav.querySelector('a[href="#consultant-admin"]')){
+    const a=document.createElement('a');a.href='#consultant-admin';a.innerHTML='<span class="icon">▤</span>Consultant inbox';
+    nav.insertBefore(a,nav.querySelector('a[href="#workspace-info"]')||null);
+  }
+  if(!$('consultant-admin-panel')){
+    const host=document.querySelector('main')||document.body,s=document.createElement('section');
+    s.id='consultant-admin-panel';s.className='card';s.style.marginTop='14px';
+    s.innerHTML=`
+      <div class="card-head"><div><div class="kicker">Consultant console</div><h2>Consultant inbox</h2><div class="muted">Open customer cases, read the full thread, reply and close conversations.</div></div><span class="pill green">Admin</span></div>
+      <div style="display:grid;grid-template-columns:minmax(240px,.38fr) minmax(0,1fr);gap:14px">
+        <div>
+          <div style="display:flex;gap:8px;margin-bottom:10px"><select id="adminConsultantFilter" style="${fieldStyle()}"><option value="all">All cases</option><option value="open">Open</option><option value="answered">Answered</option><option value="closed">Closed</option></select><button class="btn" id="adminConsultantRefresh" type="button">Refresh</button></div>
+          <div id="adminConsultantThreads" style="display:grid;gap:7px"></div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:12px;min-height:500px;display:flex;flex-direction:column;overflow:hidden">
+          <div id="adminConsultantHead" style="padding:14px;border-bottom:1px solid var(--line)"><strong>Select a case</strong></div>
+          <div id="adminConsultantMessages" style="flex:1;padding:14px;overflow:auto;display:grid;gap:10px;align-content:start"><div class="muted">Customer messages will appear here.</div></div>
+          <div style="padding:12px;border-top:1px solid var(--line)">
+            <textarea id="adminConsultantReply" placeholder="Reply as consultant…" style="${fieldStyle()};min-height:90px" disabled></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <button class="btn primary" id="adminConsultantSend" type="button" disabled>Send reply</button>
+              <button class="btn" id="adminConsultantOpen" type="button" disabled>Mark open</button>
+              <button class="btn ghost" id="adminConsultantClose" type="button" disabled>Close case</button>
+            </div>
+            <div id="adminConsultantMsg" class="muted" style="margin-top:8px"></div>
+          </div>
+        </div>
+      </div>`;
+    host.appendChild(s);
+  }
+  let active=null;
+  const threads=$('adminConsultantThreads'),msgs=$('adminConsultantMessages'),head=$('adminConsultantHead'),reply=$('adminConsultantReply'),send=$('adminConsultantSend'),openBtn=$('adminConsultantOpen'),closeBtn=$('adminConsultantClose'),note=$('adminConsultantMsg');
+  async function loadAdminThreads(){
+    try{
+      const x=await api('/api/consultant/admin/threads?status='+encodeURIComponent($('adminConsultantFilter').value));
+      const rows=x.threads||[];
+      threads.innerHTML=rows.length?rows.map(t=>'<button type="button" class="btn admin-case" data-id="'+esc(t.id)+'" style="text-align:left"><strong>'+esc(t.subject||'Consultant case')+'</strong><div class="evidence">'+esc(t.email||'Unknown account')+' · '+esc(t.status||'open')+'</div><div class="evidence">'+esc(t.last_message||'No messages yet')+'</div></button>').join(''):'<div class="muted">No consultant cases in this view.</div>';
+      threads.querySelectorAll('.admin-case').forEach(b=>b.onclick=()=>openAdminThread(b.dataset.id));
+    }catch(e){threads.innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+  }
+  async function openAdminThread(id){
+    active=id;note.textContent='';
+    try{
+      const x=await api('/api/consultant/admin/messages?request_id='+encodeURIComponent(id));
+      head.innerHTML='<strong>'+esc(x.thread.subject||'Consultant case')+'</strong><div class="evidence">'+esc(x.thread.email||'Unknown account')+' · '+esc(x.thread.status||'open')+'</div>';
+      msgs.innerHTML=(x.messages||[]).map(m=>{
+        const consultant=m.sender==='consultant';
+        return '<div style="max-width:82%;'+(consultant?'margin-left:auto;background:#13243a':'margin-right:auto;background:#0a1726')+';border:1px solid var(--line);border-radius:12px;padding:10px 12px"><div class="kicker">'+(consultant?'CONSULTANT':'CUSTOMER')+'</div><div style="white-space:pre-wrap;margin-top:4px">'+esc(m.body)+'</div><div class="evidence">'+new Date(m.created_at).toLocaleString()+'</div></div>';
+      }).join('')||'<div class="muted">No messages yet.</div>';
+      reply.disabled=false;send.disabled=false;openBtn.disabled=false;closeBtn.disabled=false;msgs.scrollTop=msgs.scrollHeight;
+    }catch(e){msgs.innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+  }
+  $('adminConsultantRefresh').onclick=loadAdminThreads;
+  $('adminConsultantFilter').onchange=loadAdminThreads;
+  send.onclick=async()=>{const body=reply.value.trim();if(!body||!active)return;send.disabled=true;note.textContent='Sending…';try{await api('/api/consultant/admin/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:active,body})});reply.value='';note.textContent='Reply sent.';await openAdminThread(active);await loadAdminThreads();}catch(e){note.textContent=e.message}finally{send.disabled=false}};
+  async function mark(status){if(!active)return;try{await api('/api/consultant/admin/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:active,status})});note.textContent='Case '+status+'.';await openAdminThread(active);await loadAdminThreads();}catch(e){note.textContent=e.message}}
+  openBtn.onclick=()=>mark('open');closeBtn.onclick=()=>mark('closed');
+  await loadAdminThreads();
+  setInterval(()=>{if(active)openAdminThread(active);loadAdminThreads()},20000);
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{add();setTimeout(addConsultantAdmin,500)});else{add();setTimeout(addConsultantAdmin,500)};
 })();
