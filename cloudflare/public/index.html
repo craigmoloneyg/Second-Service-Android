@@ -145,13 +145,27 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
     </div>
     <span class="pill green" id="aiStatus">Ready</span>
   </div>
-  <div style="display:grid;grid-template-columns:1fr auto;gap:10px">
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center">
     <input id="invoiceFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:13px">
+    <input id="invoiceCameraFile" type="file" accept="image/*" capture="environment" hidden>
+    <button class="btn" type="button" id="invoiceCameraBtn">📷 Scan invoice</button>
     <button class="btn primary" id="analyseInvoiceBtn">Analyse invoice</button>
   </div>
   <div id="invoiceResult" style="margin-top:14px;display:none;padding:14px;background:#081522;border:1px solid var(--line);border-radius:12px"></div>
 </section>
 
+<section class="card" id="inventory-panel" style="margin-top:14px">
+  <div class="card-head">
+    <div><h2>Inventory</h2><div class="muted">Invoice quantities are added automatically when an invoice is saved.</div></div>
+    <span class="pill green" id="inventoryStatus">Loading</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="table">
+      <thead><tr><th>Ingredient</th><th>Supplier</th><th class="right">On hand</th><th>Unit</th><th class="right">Last price</th><th>Last received</th></tr></thead>
+      <tbody id="inventoryRows"><tr><td colspan="6" class="muted">No inventory received yet.</td></tr></tbody>
+    </table>
+  </div>
+</section>
 
 <section class="card" id="menu-costing" style="margin-top:14px">
   <div class="card-head">
