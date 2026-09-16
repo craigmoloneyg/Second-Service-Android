@@ -81,11 +81,57 @@ async function load(){
         ? 'Track the same KPIs weekly against the current '+money(revenue)+' 30-day revenue baseline, '+pct(j.estimated_food_cost_pct)+' mapped food cost and '+money(j.contribution_30d)+' mapped contribution.'
         : 'Establish a 30-day Square sales baseline, then compare food cost, contribution and supplier movement weekly.';
 
-      plan.innerHTML=
-        '<div class="plan-step"><strong>DAYS 1–14 · CLEAN BASELINE</strong><p>'+esc(day1)+'</p></div>'+
-        '<div class="plan-step"><strong>DAYS 15–30 · PURCHASING</strong><p>'+esc(day15)+'</p></div>'+
-        '<div class="plan-step"><strong>DAYS 31–60 · MENU MARGIN</strong><p>'+esc(day31)+'</p></div>'+
-        '<div class="plan-step"><strong>DAYS 61–90 · PROVE RECOVERY</strong><p>'+esc(day61)+'</p></div>';
+      const phases=[
+        {key:'days-1-14',title:'DAYS 1–14 · CLEAN BASELINE',summary:day1,question:'Deep-dive the DAYS 1–14 phase of my 90-day restaurant recovery plan. Use my actual invoices, suppliers, ingredient costs and Square baseline. Give me the exact checks to perform, records to verify, anomalies to investigate, metrics to capture, and a practical checklist in priority order. Use workspace evidence and do not invent missing figures.'},
+        {key:'days-15-30',title:'DAYS 15–30 · PURCHASING',summary:day15,question:'Deep-dive the DAYS 15–30 purchasing phase of my 90-day restaurant recovery plan. Use actual supplier names, invoice line prices, repeated price movements, pack sizes and ingredient costs from my workspace. Identify the highest-value purchasing issues, what to verify with suppliers, what to measure, and a concrete action checklist. Do not invent missing figures.'},
+        {key:'days-31-60',title:'DAYS 31–60 · MENU MARGIN',summary:day31,question:'Deep-dive the DAYS 31–60 menu margin phase of my 90-day restaurant recovery plan. Use actual Square sales, mapped recipes, portion costs, food-cost percentages, contribution and invoice-derived ingredient costs. Identify the dishes or mappings that need attention, the commercial reason, the metric to watch, and a concrete checklist. Do not invent missing figures.'},
+        {key:'days-61-90',title:'DAYS 61–90 · PROVE RECOVERY',summary:day61,question:'Deep-dive the DAYS 61–90 prove-recovery phase of my 90-day restaurant recovery plan. Use my actual 30-day revenue baseline, invoice history, supplier movements, mapped recipe costs, contribution and recoverable margin. Give me the weekly scorecard, comparison method, thresholds to watch, and a concrete checklist to prove whether recovery actions worked. Do not invent missing figures.'}
+      ];
+      plan.innerHTML=phases.map(x=>
+        '<button type="button" class="plan-step recovery-phase" data-phase="'+x.key+'" style="text-align:left;width:100%;cursor:pointer;color:inherit;font:inherit">'+
+        '<strong>'+esc(x.title)+'</strong><p>'+esc(x.summary)+'</p><div class="evidence" style="margin-top:10px">Click to open detailed view</div></button>'
+      ).join('');
+
+      let detail=recovery.querySelector('#recoveryPhaseDetail');
+      if(!detail){
+        detail=document.createElement('div');
+        detail.id='recoveryPhaseDetail';
+        detail.hidden=true;
+        detail.style.cssText='margin-top:14px;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)';
+        plan.after(detail);
+      }
+
+      plan.querySelectorAll('.recovery-phase').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const phase=phases.find(x=>x.key===btn.dataset.phase);if(!phase)return;
+          detail.hidden=false;
+          detail.innerHTML=
+            '<div class="card-head"><div><div class="kicker">Recovery phase</div><h3>'+esc(phase.title)+'</h3></div><span class="pill green">Live evidence</span></div>'+
+            '<p style="margin-top:0">'+esc(phase.summary)+'</p>'+
+            '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0">'+
+              '<div class="plan-step"><strong>30-DAY REVENUE</strong><p>'+money(j.revenue_30d)+'</p></div>'+
+              '<div class="plan-step"><strong>INVOICES</strong><p>'+Number(j.invoice_count_all_time||0)+'</p></div>'+
+              '<div class="plan-step"><strong>MAPPED SALES</strong><p>'+pct(j.mapped_sales_share_pct)+'</p></div>'+
+              '<div class="plan-step"><strong>RECOVERABLE</strong><p>'+money(j.recoverable_to_30pct_30d)+'</p></div>'+
+            '</div>'+
+            '<button type="button" class="btn primary" id="recoveryPhaseAiBtn">AI deep-dive this phase</button>'+
+            '<div id="recoveryPhaseAiOutput" class="p2p-ai-result" hidden style="margin-top:14px;white-space:pre-wrap"></div>';
+          const aiBtn=detail.querySelector('#recoveryPhaseAiBtn');
+          const aiOut=detail.querySelector('#recoveryPhaseAiOutput');
+          aiBtn.addEventListener('click',async()=>{
+            aiBtn.disabled=true;aiBtn.textContent='Analysing this phase…';aiOut.hidden=false;
+            aiOut.textContent='Reading your Square, invoice, supplier, ingredient and menu evidence for '+phase.title+'…';
+            try{
+              const r=await fetch('/api/ai/advice',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({area:'recovery-plan-phase',question:phase.question})});
+              const x=await r.json();if(!r.ok)throw new Error(x.error||'The AI deep-dive could not be generated.');
+              aiOut.textContent=x.advice?.summary||'No detailed phase analysis was returned.';
+              aiBtn.textContent='Regenerate AI deep-dive';
+            }catch(e){aiOut.textContent=e.message;aiBtn.textContent='AI deep-dive this phase';}
+            finally{aiBtn.disabled=false;}
+          });
+          detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+        });
+      });
     }
     const sub=recovery.querySelector('.card-head .muted');
     if(sub)sub.textContent='Baseline built from '+(j.invoice_count_all_time||0)+' invoices, '+money(j.revenue_30d)+' Square revenue and '+pct(j.mapped_sales_share_pct)+' mapped sales. Use AI to turn this into a venue-specific recovery plan.';
