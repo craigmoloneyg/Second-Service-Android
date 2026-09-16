@@ -20,10 +20,7 @@ async function load(){
       '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><div><div class="muted">Mapped sales</div><strong>'+money(j.mapped_sales_30d)+'</strong><div class="evidence">'+pct(j.mapped_sales_share_pct)+' of Square revenue</div></div><div><div class="muted">Estimated food cost</div><strong>'+pct(j.estimated_food_cost_pct)+'</strong><div class="evidence">'+money(j.estimated_food_cost_30d)+' on mapped dishes</div></div><div><div class="muted">Recoverable to 30%</div><strong>'+money(j.recoverable_to_30pct_30d)+'</strong><div class="evidence">Mapped dishes only</div></div></div>';
   }
   const kpis=[...document.querySelectorAll('.kpis .kpi')];
-  if(kpis[0]){kpis[0].querySelector('.label').textContent='30-day Square revenue';kpis[0].querySelector('.value').textContent=money(j.revenue_30d);kpis[0].querySelector('.delta').textContent=(j.orders_30d||0)+' orders · '+(j.average_order_value==null?'—':money(j.average_order_value))+' avg';}
   if(kpis[1]){kpis[1].querySelector('.label').textContent='Recoverable profit / 30 days';kpis[1].querySelector('.value').textContent=money(j.recoverable_to_30pct_30d);kpis[1].querySelector('.delta').textContent='Based on mapped dishes above 30% food cost';}
-  if(kpis[2]){kpis[2].querySelector('.label').textContent='Mapped contribution';kpis[2].querySelector('.value').textContent=money(j.contribution_30d);kpis[2].querySelector('.delta').textContent=pct(j.mapped_sales_share_pct)+' of sales mapped';}
-  if(kpis[3]){kpis[3].querySelector('.label').textContent='Invoice spend captured / 30 days';kpis[3].querySelector('.value').textContent=money(j.invoice_spend_30d);kpis[3].querySelector('.delta').textContent=(j.invoice_count_30d||0)+' invoices in period';}
 
   const trend=[...document.querySelectorAll('.card')].find(x=>x.querySelector('h2')?.textContent.trim()==='Profit recovery trend');
   if(trend){
