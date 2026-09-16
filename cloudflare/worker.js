@@ -148,20 +148,27 @@ async function extractInvoice(request, env) {
     fileId = uploadJson.id;
     const payload = {
       model: env.OPENAI_MODEL || "gpt-5.6-luna",
-      instructions: "You extract commercial data from hospitality supplier invoices. Return only facts supported by the document. Do not recommend staffing, supplier, menu, pricing or operational actions. Preserve product descriptions closely. Capture invoice units exactly as shown. Use null where a value cannot be supported. Flag uncertainty.",
+      instructions: "You extract accounting-grade commercial data from hospitality supplier invoices. Read every page and every invoice line. Return only facts supported by the document. Preserve product descriptions, pack sizes, quantities, units, unit prices, line totals, subtotal, tax and invoice total exactly as printed. Do not silently infer missing quantities or prices. Treat credits and printed negative lines as negative values. Do not merge separate product lines. Use null where a value cannot be supported. Flag uncertainty in missing_or_ambiguous. Do not recommend staffing, supplier, menu, pricing or operational actions.",
       input: [{ role: "user", content: [
         { type: "input_file", file_id: fileId },
         { type: "input_text", text: "Extract this supplier invoice into the required structured schema." }
       ] }],
-      text: { format: { type: "json_schema", name: "hospitality_invoice", strict: true, schema: invoiceSchema } }
+      text: { format: { type: "json_schema", name: "hospitality_invoice", strict: true, schema: invoiceSchema } },
+      max_output_tokens: 12000
     };
-    const response = await fetch(`${OPENAI_BASE}/responses`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const responseJson = await response.json();
-    if (!response.ok) throw new Error(openAIError(responseJson, "AI invoice extraction failed."));
+    let response=null,responseJson=null;
+    for(let attempt=0;attempt<3;attempt++){
+      response = await fetch(`${OPENAI_BASE}/responses`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      try{responseJson=await response.json();}catch{responseJson={};}
+      if(response.ok) break;
+      if(![429,500,502,503,504].includes(response.status) || attempt===2) throw new Error(openAIError(responseJson, "AI invoice extraction failed."));
+      await new Promise(r=>setTimeout(r,600*(attempt+1)));
+    }
+    if (!response?.ok) throw new Error(openAIError(responseJson, "AI invoice extraction failed."));
     const text = outputText(responseJson);
     if (!text) throw new Error("AI returned no structured invoice data.");
     const result = JSON.parse(text);
