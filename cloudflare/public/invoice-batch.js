@@ -95,7 +95,18 @@ async function loadInventory(){
   try{
     const r=await fetch('/api/inventory',{credentials:'same-origin',cache:'no-store'});
     const j=await r.json();if(!r.ok)throw new Error(j.error||'Could not load inventory.');
-    const items=j.inventory||[];
+    let items=(j.inventory||[]).slice();
+    const sortBy=$('inventorySortBy')?.value||'display_name';
+    const sortDir=$('inventorySortDir')?.value||'asc';
+    items.sort((a,b)=>{
+      let av=a?.[sortBy],bv=b?.[sortBy];
+      if(['display_name','supplier','last_received_at'].includes(sortBy)){
+        av=String(av||'').toLowerCase();bv=String(bv||'').toLowerCase();
+        return sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+      }
+      av=Number(av);bv=Number(bv);if(!Number.isFinite(av))av=-Infinity;if(!Number.isFinite(bv))bv=-Infinity;
+      return sortDir==='asc'?av-bv:bv-av;
+    });
     status.textContent=items.length+' items';
     rows.innerHTML=items.length?items.map(x=>'<tr><td>'+String(x.display_name||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</td><td>'+String(x.supplier||'—').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</td><td class="right">'+Number(x.quantity_on_hand||0).toFixed(2).replace(/\.00$/,'')+'</td><td>'+String(x.unit||'unit')+'</td><td class="right">'+money(x.last_unit_price)+'</td><td>'+String(x.last_received_at||'—')+'</td></tr>').join(''):'<tr><td colspan="6" class="muted">No inventory received yet.</td></tr>';
   }catch(e){status.textContent='Needs attention';rows.innerHTML='<tr><td colspan="6" class="muted">'+e.message+'</td></tr>';}
@@ -131,6 +142,7 @@ function setupCamera(){
   }
 }
 window.addEventListener('p2p-inventory-changed',loadInventory);
+document.addEventListener('change',e=>{if(e.target?.id==='inventorySortBy'||e.target?.id==='inventorySortDir')loadInventory();},true);
 window.p2pLoadInventory=loadInventory;
 
 // Capture-phase delegation makes this survive any later DOM/button replacement.
