@@ -70,7 +70,7 @@ function build(){
     host=document.createElement('div');host.id='p2p-page-host';
     for(const [key,meta] of Object.entries(routes)){
       const v=document.createElement('div');v.className='p2p-page';v.dataset.page=key;
-      v.innerHTML='<div class="p2p-page-head"><div class="kicker">Price 2 Plate</div><h2>'+meta.title+'</h2><p>'+meta.subtitle+'</p></div>';
+      v.innerHTML='<div class="p2p-page-head"><div class="kicker">Garnish</div><h2>'+meta.title+'</h2><p>'+meta.subtitle+'</p></div>';
       views[key]=v;host.appendChild(v);
     }
     const header=main.querySelector(':scope > header');
@@ -85,7 +85,7 @@ function build(){
     }
     main.appendChild(host);
     const mobile=document.createElement('div');mobile.className='p2p-mobile-nav';
-    mobile.innerHTML='<select aria-label="Price 2 Plate section">'+Object.entries(routes).map(([k,v])=>'<option value="'+k+'">'+v.title+'</option>').join('')+'</select>';
+    mobile.innerHTML='<select aria-label="Garnish section">'+Object.entries(routes).map(([k,v])=>'<option value="'+k+'">'+v.title+'</option>').join('')+'</select>';
     header?.after(mobile);
     mobile.querySelector('select').addEventListener('change',e=>go(e.target.value,true));
   }else{
