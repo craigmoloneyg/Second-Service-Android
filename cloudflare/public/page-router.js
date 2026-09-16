@@ -7,6 +7,7 @@ const routes={
   'menu-costing':{title:'Menu performance',subtitle:'Recipe costs, selling prices and contribution by dish.'},
   bar:{title:'Bar',subtitle:'Beverage cost, pour margin and stock variance.'},
   analyst:{title:'Ask the Analyst',subtitle:'Interrogate your venue evidence in plain English.'},
+  consultant:{title:'Live consultant',subtitle:'Message a real hospitality consultant and keep the conversation in one place.'},
   square:{title:'Square',subtitle:'Live POS connection, sales sync and menu activity.'},
   workspace:{title:'Workspace',subtitle:'Account, integrations, billing and venue settings.'}
 };
@@ -14,7 +15,7 @@ const map={
   overview:'overview','profit-recovery':'profit-recovery',
   'invoice-processing':'purchasing','supplier-intelligence':'purchasing','inventory-panel':'purchasing','inventory-panel':'purchasing',purchasing:'purchasing',
   labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst',
-  square:'square','square-pos':'square','workspace-info':'workspace','account-panel':'workspace','commercial-settings':'workspace'
+  square:'square','square-pos':'square','live-consultant':'consultant','workspace-info':'workspace','account-panel':'workspace','commercial-settings':'workspace'
 };
 let views={};
 
@@ -26,6 +27,7 @@ function routeFor(el){
   if(h.includes('labour'))return 'labour';
   if(h.includes('menu')||h.includes('recipe')||h.includes('margin signal'))return 'menu-costing';
   if(h.includes('bar'))return 'bar';
+  if(h.includes('live consultant')||h.includes('real consultant'))return 'consultant';
   if(h.includes('analyst'))return 'analyst';
   if(h.includes('profit'))return 'profit-recovery';
   if(h.includes('workspace')||h.includes('account'))return 'workspace';
@@ -34,7 +36,7 @@ function routeFor(el){
 function moveKnown(){
   const places={
     'invoice-processing':'purchasing','supplier-intelligence':'purchasing',
-    'menu-costing':'menu-costing','square-pos':'square','account-panel':'workspace','commercial-settings':'workspace'
+    'menu-costing':'menu-costing','square-pos':'square','live-consultant':'consultant','account-panel':'workspace','commercial-settings':'workspace'
   };
   for(const [id,r] of Object.entries(places)){
     const el=document.getElementById(id);
@@ -88,8 +90,12 @@ function build(){
     for(const v of host.querySelectorAll('.p2p-page'))views[v.dataset.page]=v;
   }
 
-  // Ensure Square link exists.
+  // Ensure Square and Live Consultant links exist.
   const nav=document.querySelector('.nav');
+  if(nav&&!nav.querySelector('a[href="#consultant"]')){
+    const a=document.createElement('a');a.href='#consultant';a.innerHTML='<span class="icon">✉</span>Live consultant';
+    nav.insertBefore(a,nav.querySelector('a[href="#workspace-info"]')||null);
+  }
   if(nav&&!nav.querySelector('a[href="#square"]')){
     const a=document.createElement('a');a.href='#square';a.innerHTML='<span class="icon">▣</span>Square';
     nav.insertBefore(a,nav.querySelector('a[href="#workspace-info"]')||null);
