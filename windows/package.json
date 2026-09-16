@@ -1,10 +1,10 @@
 {
-  "name": "price-2-plate-windows",
+  "name": "garnish-windows",
   "version": "1.1.0",
-  "description": "Price 2 Plate desktop app",
+  "description": "Garnish desktop app",
   "private": true,
   "main": "main.js",
-  "author": "Price 2 Plate",
+  "author": "Garnish",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win nsis"
@@ -15,14 +15,14 @@
   },
   "build": {
     "appId": "com.secondservice.price2plate",
-    "productName": "Price 2 Plate",
-    "artifactName": "Price-2-Plate-Setup-${version}.${ext}",
+    "productName": "Garnish",
+    "artifactName": "Garnish-Setup-${version}.${ext}",
     "directories": { "output": "dist" },
     "extraResources": [{"from":"../app/src/main/assets", "to":"enhancements", "filter":["welcome.js", "invoice-batch.js"]}],
     "files": ["main.js", "preload.js", "logo.svg"],
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "artifactName": "Price-2-Plate-Setup-${version}.${ext}"
+      "artifactName": "Garnish-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -30,7 +30,7 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Price 2 Plate"
+      "shortcutName": "Garnish"
     }
   }
 }
