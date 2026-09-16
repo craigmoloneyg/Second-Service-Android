@@ -17,7 +17,7 @@ function add(){
     const host=document.querySelector('main')||document.body,s=document.createElement('section');
     s.id='commercial-settings';s.className='card';s.dataset.p2pPage='workspace';s.style.marginTop='14px';
     s.innerHTML=`
-      <div class="card-head"><div><div class="kicker">Membership & integrations</div><h2>Garnish account</h2><div class="muted">14-day free trial. No card required. Cancel anytime.</div></div><span class="pill blue" id="planBadge">Sign in</span></div>
+      <div class="card-head"><div><div class="kicker">Membership & integrations</div><h2>Garnish account</h2><div class="muted">14-day free trial. No card required. Cancel anytime.</div></div><button class="pill blue" id="planBadge" type="button" style="border:0;cursor:pointer">Sign in to start trial</button></div>
       <div id="planBox" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
         <div class="card"><h3>Regular</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$99<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Invoice AI, live ingredient and recipe costing, Square, profit dashboard, purchasing alerts and AI Analyst.</div><button class="btn primary" id="regularBtn" style="margin-top:12px">Choose Regular</button></div>
         <div class="card"><h3>Gold</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$249<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Everything in Regular plus enhanced AI and live consultant messaging with up to 4 new cases each month.</div><button class="btn primary" id="goldBtn" style="margin-top:12px">Choose Gold</button></div>
@@ -160,7 +160,7 @@ async function status(){
   loadImports();
 }
 
-function bind(){
+function bind(){if($('planBadge'))$('planBadge').onclick=()=>{if(typeof window.GARNISH_OPEN_ACCOUNT==='function')window.GARNISH_OPEN_ACCOUNT('signin');else{const p=$('account-panel');if(p){p.hidden=false;p.scrollIntoView({behavior:'smooth',block:'start'});}}};
   if($('regularBtn')&&!$('regularBtn').dataset.ready){
     for(const [id,plan] of [['regularBtn','regular'],['goldBtn','gold']]){
       const b=$(id);b.dataset.ready='1';b.onclick=async()=>{try{const x=await api('/api/billing/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});location.href=x.url}catch(e){alert(e.message)}};
