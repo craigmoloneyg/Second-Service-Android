@@ -39,10 +39,10 @@
     .p2p-eyebrow{color:#f4c76a!important}
     .p2p-home h1{color:#e8edf2!important;font-size:clamp(48px,6vw,82px)!important;line-height:.98!important}
     .p2p-home h1 em{color:#f4c76a!important}
-    .p2p-intro,.p2p-helper,.p2p-section-title span,.p2p-bottom{color:#8fa4ba!important}
+    .p2p-intro,.p2p-helper,.p2p-section-title span,.p2p-bottom{color:#86a79a!important}
     .p2p-art{background:#0c1827!important;border-radius:26px!important}
     .p2p-receipt{background:#101f30!important;color:#e8edf2!important}
-    .p2p-paper-small{color:#8fa4ba!important}
+    .p2p-paper-small{color:#86a79a!important}
     .p2p-paper-row{border-color:#203246!important}
     .p2p-paper-row span:last-child{color:#f4c76a!important}
     .p2p-plate{background:#111f30!important;box-shadow:inset 0 0 0 13px #0c1827,inset 0 0 0 15px #203246!important}
