@@ -108,10 +108,12 @@ async function authApi(request,env,action){
     if(action==="signup"){
       const existing=await env.DB.prepare("SELECT * FROM garnish_accounts WHERE lower(email)=?").bind(email).first();
       if(existing){
+        const sessions=await env.DB.prepare("SELECT COUNT(*) n FROM garnish_sessions WHERE account_id=?").bind(existing.id).first();
+        const hasSession=Number(sessions?.n||0)>0;
         if(existing.password_hash&&existing.password_salt){
           const match=(await hashPassword(password,existing.password_salt))===existing.password_hash;
           if(match) return issueSession(existing.id);
-          return reply({error:"That email already exists. Use Sign in with the password used when the account was created."},409);
+          if(hasSession) return reply({error:"That email already has an active Garnish account. Use Sign in."},409);
         }
         const salt=tokenHex(), hash=await hashPassword(password,salt), workspaceId=existing.workspace_id||tokenHex(), now=existing.created_at||new Date().toISOString();
         await env.DB.prepare("UPDATE garnish_accounts SET password_hash=?,password_salt=?,workspace_id=?,created_at=? WHERE id=?").bind(hash,salt,workspaceId,now,existing.id).run();
