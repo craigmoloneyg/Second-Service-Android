@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const MAX_FILES=75,CONCURRENCY=5;
+const MAX_FILES=75,CONCURRENCY=4;
 const types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'};
 const state=window.invoiceBatchState||{running:false,stop:false};
 window.invoiceBatchState=state;
@@ -18,7 +18,7 @@ function setup(){
   let hint=$('invoiceBatchHint');
   if(!hint){
     hint=document.createElement('p');hint.id='invoiceBatchHint';hint.className='muted';
-    hint.textContent='Select up to 75 PDF or image invoices. Price 2 Plate processes 5 at once and you can move around the app while they run.';
+    hint.textContent='Select up to 75 PDF or image invoices. Price 2 Plate processes several at once and you can move around the app while they run.';
     input.parentElement?.before(hint);
   }
   update();
