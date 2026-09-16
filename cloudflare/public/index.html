@@ -173,7 +173,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
   <div class="card-head">
     <div>
       <h2>Live Menu Costing</h2>
-      <div class="muted">Build recipes against the latest prices learned from your supplier invoices.</div>
+      <div class="muted">Build recipes in grams using live cost-per-gram prices learned from supplier invoices.</div>
     </div>
     <span class="pill green" id="menuDbStatus">Loading ingredients</span>
   </div>
@@ -197,7 +197,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
     <div style="padding:4px">
       <div class="kicker">What it calculates</div>
       <div style="display:grid;gap:10px;margin-top:10px">
-        <div class="plan-step"><strong>LIVE PORTION COST</strong><p>Uses the most recent ingredient costs from uploaded invoices.</p></div>
+        <div class="plan-step"><strong>LIVE PORTION COST</strong><p>Every ingredient is costed in grams using the latest invoice-derived cost per gram.</p></div>
         <div class="plan-step"><strong>FOOD COST %</strong><p>Portion cost ÷ selling price, recalculated whenever prices move.</p></div>
         <div class="plan-step"><strong>TARGET SELLING PRICE</strong><p>Shows the price required for 28% and 30% food-cost targets.</p></div>
       </div>
@@ -205,7 +205,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
   </div>
 
   <div style="margin-top:18px">
-    <div class="card-head"><div><h3>Costed menu</h3><div class="muted">Every saved recipe is recalculated from current invoice prices.</div></div></div>
+    <div class="card-head"><div><h3>Costed menu</h3><div class="muted">Every saved recipe is recalculated from current invoice prices.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="recipeSortBy" aria-label="Sort recipes"><option value="name">Dish name</option><option value="portion_cost">Portion cost</option><option value="food_cost_pct">Food cost %</option><option value="selling_price">Selling price</option></select><select id="recipeSortDir" aria-label="Sort direction"><option value="asc">Low to high / A–Z</option><option value="desc">High to low / Z–A</option></select></div></div>
     <div id="recipeList"><div class="muted">No recipes loaded yet.</div></div>
   </div>
 </section>
@@ -324,11 +324,11 @@ function addRecipeRow(){
   if(!wrap) return;
   const row=document.createElement("div");
   row.className="recipe-ingredient-row";
-  row.style.cssText="display:grid;grid-template-columns:minmax(0,2.3fr) minmax(90px,.8fr) minmax(80px,.8fr) auto;gap:8px;margin-top:8px;width:100%;min-width:0";
+  row.style.cssText="display:grid;grid-template-columns:minmax(0,2.3fr) minmax(110px,.8fr) 54px auto;gap:8px;margin-top:8px;width:100%;min-width:0";
   row.innerHTML=`
     <select class="ingredientSelect" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></select>
-    <input class="ingredientQty" type="number" step="0.01" min="0" placeholder="Qty" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px">
-    <select class="ingredientUnit" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></select>
+    <input class="ingredientQty" type="number" step="0.1" min="0" placeholder="Grams" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px">
+    <div class="ingredientUnit" style="display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;font-weight:800">g</div>
     <button class="btn removeRow" type="button">×</button>`;
   wrap.appendChild(row);
   refreshIngredientSelect(row.querySelector(".ingredientSelect"));
@@ -343,15 +343,16 @@ function refreshIngredientSelects(){
 function refreshIngredientSelect(sel){
   const old=sel.value;
   sel.innerHTML='<option value="">Choose ingredient</option>'+ingredientCache.map(i=>
-    `<option value="${i.id}">${escapeHtml(i.display_name)} · ${i.base_unit_cost!=null ? moneyUnit(i.base_unit_cost,i.base_unit) : "needs unit review"}</option>`
+    `<option value="${i.id}">${escapeHtml(i.display_name)} · ${i.cost_per_gram!=null ? moneyUnit(i.cost_per_gram,"g") : "needs gram cost"}</option>`
   ).join("");
   if(old) sel.value=old;
 }
 function syncUnits(row){
   const id=Number(row.querySelector(".ingredientSelect").value);
   const ing=ingredientCache.find(x=>Number(x.id)===id);
-  const unitSel=row.querySelector(".ingredientUnit");
-  unitSel.innerHTML=unitOptions(ing?.base_unit).map(u=>`<option value="${u}">${u}</option>`).join("");
+  const qty=row.querySelector(".ingredientQty");
+  if(qty) qty.disabled=Boolean(ing&&ing.cost_per_gram==null);
+  row.title=ing&&ing.cost_per_gram==null?'This ingredient needs a gram-based invoice cost before it can be used in recipes.':'';
 }
 function moneyUnit(v,u){
   const n=Number(v);
@@ -368,7 +369,7 @@ document.getElementById("saveRecipeBtn")?.addEventListener("click",async()=>{
   const items=[...document.querySelectorAll(".recipe-ingredient-row")].map(row=>({
     ingredient_id:Number(row.querySelector(".ingredientSelect").value),
     quantity:Number(row.querySelector(".ingredientQty").value),
-    unit:row.querySelector(".ingredientUnit").value
+    unit:"g"
   })).filter(x=>x.ingredient_id && x.quantity>0);
   const msg=document.getElementById("recipeMessage");
   if(!name || !items.length){ msg.textContent="Enter a dish name and at least one ingredient."; return; }
@@ -395,13 +396,21 @@ async function loadRecipes(){
     const r=await fetch("/api/recipes");
     const data=await r.json();
     if(!r.ok) throw new Error(data.error||"Could not load recipes");
-    const recipes=data.recipes||[];
+    let recipes=data.recipes||[];
     if(!recipes.length){ box.innerHTML='<div class="muted">No recipes yet. Build your first one above.</div>'; return; }
+    const sortBy=document.getElementById("recipeSortBy")?.value||"name";
+    const sortDir=document.getElementById("recipeSortDir")?.value||"asc";
+    recipes=recipes.slice().sort((a,b)=>{
+      let av=a[sortBy],bv=b[sortBy];
+      if(sortBy==="name"){av=String(av||"").toLowerCase();bv=String(bv||"").toLowerCase();return sortDir==="asc"?av.localeCompare(bv):bv.localeCompare(av);}
+      av=Number(av);bv=Number(bv);if(!Number.isFinite(av))av=-Infinity;if(!Number.isFinite(bv))bv=-Infinity;
+      return sortDir==="asc"?av-bv:bv-av;
+    });
     box.innerHTML=recipes.map(rec=>`
       <div class="leak" style="align-items:start">
         <div>
           <div class="leak-title">${escapeHtml(rec.name)}</div>
-          <div class="evidence">${rec.items.map(i=>`${escapeHtml(i.display_name)} ${i.quantity}${escapeHtml(i.unit)}`).join(" · ")}</div>
+          <div class="evidence">${rec.items.map(i=>`${escapeHtml(i.display_name)} ${i.quantity}g @ ${i.cost_per_gram!=null ? moneyUnit(i.cost_per_gram,"g") : "no gram cost"}`).join(" · ")}</div>
           <div class="evidence">Current portion cost ${money(rec.portion_cost)} · Sell ${money(rec.selling_price)} · Target sell @28% ${money(rec.target_price_28)}</div>
         </div>
         <div class="impact">
@@ -415,6 +424,8 @@ async function deleteRecipe(id){
   await fetch(`/api/recipes/${id}`,{method:"DELETE"});
   loadRecipes();
 }
+document.getElementById("recipeSortBy")?.addEventListener("change",loadRecipes);
+document.getElementById("recipeSortDir")?.addEventListener("change",loadRecipes);
 loadIngredients();
 loadRecipes();
 
