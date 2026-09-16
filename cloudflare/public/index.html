@@ -46,7 +46,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
 .ai-box{display:grid;grid-template-columns:1fr auto;gap:10px}.ai-box input{background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:13px}
 .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
 @media(max-width:980px){.shell{grid-template-columns:1fr}.sidebar{display:none}.main{padding:22px}.kpis{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-2.equal{grid-template-columns:1fr}.plan{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.kpis,.plan{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}.main{padding:18px}}
+@media(max-width:600px){.kpis,.plan,#estimateResults{grid-template-columns:1fr!important}.topbar{align-items:flex-start;flex-direction:column}.main{padding:18px}}
 
 #menu-costing,.recipe-head-fields,#recipeRows,.recipe-ingredient-row{min-width:0;max-width:100%}
 .recipe-ingredient-row select,.recipe-ingredient-row input,.recipe-head-fields input{min-width:0;width:100%}
@@ -92,6 +92,25 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
     <div class="card kpi"><div class="label">Recoverable profit / month</div><div class="value">$0</div><div class="delta muted">No data yet</div></div>
     <div class="card kpi"><div class="label">Operating margin</div><div class="value">0%</div><div class="delta">No data yet</div></div>
     <div class="card kpi"><div class="label">Prime cost</div><div class="value">0%</div><div class="delta muted">No data yet</div></div>
+  </section>
+
+  <section class="card" id="estimate-health" style="margin-top:14px">
+    <div class="card-head">
+      <div><h2>Estimate venue health</h2><div class="muted">Enter a monthly trading estimate to get a quick deterministic health score before live accounting data is connected.</div></div>
+      <span class="pill blue" id="estimateHealthBadge">Estimate mode</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:10px">
+      <label class="muted">Covers / month<input id="estCovers" type="number" min="0" step="1" placeholder="e.g. 1200" style="width:100%;margin-top:5px;background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></label>
+      <label class="muted">Average spend $<input id="estAvgSpend" type="number" min="0" step="0.01" placeholder="e.g. 85" style="width:100%;margin-top:5px;background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></label>
+      <label class="muted">Food costs $<input id="estFood" type="number" min="0" step="0.01" placeholder="Monthly" style="width:100%;margin-top:5px;background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></label>
+      <label class="muted">Wages $<input id="estWages" type="number" min="0" step="0.01" placeholder="Monthly" style="width:100%;margin-top:5px;background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></label>
+      <label class="muted">Operating costs $<input id="estOperating" type="number" min="0" step="0.01" placeholder="Monthly" style="width:100%;margin-top:5px;background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></label>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+      <button class="btn primary" id="calculateHealthBtn" type="button">Calculate health score</button>
+      <span class="muted" id="estimateMessage">Uses your estimates only. Live data remains separate.</span>
+    </div>
+    <div id="estimateResults" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:14px"></div>
   </section>
 
   <section class="grid-2">
@@ -426,6 +445,36 @@ async function deleteRecipe(id){
 }
 document.getElementById("recipeSortBy")?.addEventListener("change",loadRecipes);
 document.getElementById("recipeSortDir")?.addEventListener("change",loadRecipes);
+
+function fmtPct(v){return v==null?"—":Number(v).toFixed(1)+"%";}
+function applyEstimate(e){
+  if(!e)return;
+  const map={estCovers:e.covers,estAvgSpend:e.avg_spend,estFood:e.food_costs,estWages:e.wages,estOperating:e.operating_costs};
+  for(const [id,v] of Object.entries(map)){const el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=v??"";}
+  const score=e.health_score==null?"—":e.health_score+"/100";
+  const box=document.getElementById("estimateResults");
+  if(box)box.innerHTML=
+    '<div class="plan-step"><strong>HEALTH SCORE</strong><p>'+score+'</p></div>'+
+    '<div class="plan-step"><strong>EST. REVENUE</strong><p>'+money(e.revenue)+'</p></div>'+
+    '<div class="plan-step"><strong>FOOD COST</strong><p>'+fmtPct(e.food_cost_pct)+'</p></div>'+
+    '<div class="plan-step"><strong>LABOUR</strong><p>'+fmtPct(e.labour_pct)+'</p></div>'+
+    '<div class="plan-step"><strong>OPERATING MARGIN</strong><p>'+fmtPct(e.operating_margin_pct)+'</p></div>';
+  const kpis=[...document.querySelectorAll(".kpis .kpi")];
+  if(kpis[0]){kpis[0].querySelector(".label").textContent="Venue health score";kpis[0].querySelector(".value").textContent=score;kpis[0].querySelector(".delta").textContent="Estimate-based until live financials are complete";}
+  if(kpis[2]){kpis[2].querySelector(".label").textContent="Operating margin";kpis[2].querySelector(".value").textContent=fmtPct(e.operating_margin_pct);kpis[2].querySelector(".delta").textContent="From estimate inputs";}
+  if(kpis[3]){kpis[3].querySelector(".label").textContent="Prime cost";kpis[3].querySelector(".value").textContent=fmtPct(e.prime_cost_pct);kpis[3].querySelector(".delta").textContent="Food + wages from estimate";}
+}
+async function loadEstimate(){
+  try{const r=await fetch("/api/estimates",{credentials:"same-origin",cache:"no-store"});const x=await r.json();if(r.ok&&x.estimate)applyEstimate(x.estimate);}catch{}
+}
+document.getElementById("calculateHealthBtn")?.addEventListener("click",async()=>{
+  const btn=document.getElementById("calculateHealthBtn"),msg=document.getElementById("estimateMessage");
+  const payload={covers:Number(document.getElementById("estCovers").value),avg_spend:Number(document.getElementById("estAvgSpend").value),food_costs:Number(document.getElementById("estFood").value),wages:Number(document.getElementById("estWages").value),operating_costs:Number(document.getElementById("estOperating").value)};
+  btn.disabled=true;msg.textContent="Calculating…";
+  try{const r=await fetch("/api/estimates",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const x=await r.json();if(!r.ok)throw new Error(x.error||"Could not calculate health score.");applyEstimate(x.estimate);msg.textContent="Estimate saved. Live Square, invoice and MYOB data remain separate evidence.";}
+  catch(e){msg.textContent=e.message;}finally{btn.disabled=false;}
+});
+loadEstimate();
 loadIngredients();
 loadRecipes();
 
