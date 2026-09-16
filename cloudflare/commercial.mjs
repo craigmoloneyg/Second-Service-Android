@@ -13,7 +13,7 @@ async function tables(env){
  try{await env.DB.prepare('ALTER TABLE p2p_myob_connections ADD COLUMN cf_token TEXT').run();}catch{}
  await env.DB.prepare('CREATE TABLE IF NOT EXISTS p2p_myob_imports (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,kind TEXT NOT NULL,filename TEXT NOT NULL,imported_at TEXT NOT NULL,snapshot TEXT NOT NULL)').run();
 }
-async function user(request,env){const c=request.headers.get('cookie')||'',t=c.match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];if(!t)return null;return env.DB.prepare('SELECT a.id,a.email,a.workspace_id FROM garnish_sessions s JOIN garnish_accounts a ON a.id=s.account_id WHERE s.token=? AND s.expires_at>?').bind(t,new Date().toISOString()).first();}
+async function user(request,env){const c=request.headers.get('cookie')||'',t=c.match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];if(!t)return null;return env.DB.prepare('SELECT a.id,a.email,a.workspace_id FROM garnish_sessions_v2 s JOIN garnish_accounts_v2 a ON a.id=s.account_id WHERE s.token=? AND s.expires_at>?').bind(t,new Date().toISOString()).first();}
 function consultantAdmin(env,u){
  const raw=String(env.CONSULTANT_ADMIN_EMAILS||'').toLowerCase().split(',').map(x=>x.trim()).filter(Boolean);
  return Boolean(u?.email&&raw.includes(String(u.email).toLowerCase()));
@@ -62,14 +62,14 @@ export async function handleCommercial(request,env){const url=new URL(request.ur
   if(!consultantAdmin(env,u))return json({error:'Consultant admin access required.'},403);
   const status=String(url.searchParams.get('status')||'all').toLowerCase();
   const where=status==='all'?'':" WHERE r.status=?";
-  const q='SELECT r.id,r.account_id,r.workspace_id,r.subject,r.status,r.created_at,r.answered_at,a.email,(SELECT body FROM p2p_consultant_messages m WHERE m.request_id=r.id ORDER BY m.created_at DESC LIMIT 1) last_message,(SELECT created_at FROM p2p_consultant_messages m WHERE m.request_id=r.id ORDER BY m.created_at DESC LIMIT 1) last_message_at FROM p2p_consultant_requests r LEFT JOIN garnish_accounts a ON a.id=r.account_id'+where+' ORDER BY COALESCE(last_message_at,r.created_at) DESC LIMIT 100';
+  const q='SELECT r.id,r.account_id,r.workspace_id,r.subject,r.status,r.created_at,r.answered_at,a.email,(SELECT body FROM p2p_consultant_messages m WHERE m.request_id=r.id ORDER BY m.created_at DESC LIMIT 1) last_message,(SELECT created_at FROM p2p_consultant_messages m WHERE m.request_id=r.id ORDER BY m.created_at DESC LIMIT 1) last_message_at FROM p2p_consultant_requests r LEFT JOIN garnish_accounts_v2 a ON a.id=r.account_id'+where+' ORDER BY COALESCE(last_message_at,r.created_at) DESC LIMIT 100';
   const result=status==='all'?await env.DB.prepare(q).all():await env.DB.prepare(q).bind(status).all();
   return json({threads:result.results||[]});
  }
  if(url.pathname==='/api/consultant/admin/messages'&&request.method==='GET'){
   if(!consultantAdmin(env,u))return json({error:'Consultant admin access required.'},403);
   const requestId=String(url.searchParams.get('request_id')||'');
-  const thread=await env.DB.prepare('SELECT r.id,r.account_id,r.workspace_id,r.subject,r.status,r.created_at,r.answered_at,a.email FROM p2p_consultant_requests r LEFT JOIN garnish_accounts a ON a.id=r.account_id WHERE r.id=?').bind(requestId).first();
+  const thread=await env.DB.prepare('SELECT r.id,r.account_id,r.workspace_id,r.subject,r.status,r.created_at,r.answered_at,a.email FROM p2p_consultant_requests r LEFT JOIN garnish_accounts_v2 a ON a.id=r.account_id WHERE r.id=?').bind(requestId).first();
   if(!thread)return json({error:'Conversation not found.'},404);
   const {results=[]}=await env.DB.prepare('SELECT id,sender,body,created_at FROM p2p_consultant_messages WHERE request_id=? ORDER BY created_at ASC').bind(requestId).all();
   return json({thread,messages:results});
