@@ -107,6 +107,24 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
           priceSeries.get(key).push({name:item.description,supplier:inv.supplier_or_source||'',price:Number(item.unit_price),date:inv.document_date||'',ts});
         }
       }
+      const supplierProducts=[];
+      for(const points of priceSeries.values()){
+        const clean=points.filter(p=>Number.isFinite(p.price)).sort((a,b)=>a.ts-b.ts);
+        if(!clean.length) continue;
+        const first=clean[0],last=clean[clean.length-1];
+        supplierProducts.push({
+          name:last.name,
+          supplier:last.supplier,
+          current_price:last.price,
+          first_price:first.price,
+          change_pct:first.price?((last.price-first.price)*100/first.price):null,
+          invoice_count:clean.length,
+          first_date:first.date,
+          last_date:last.date
+        });
+      }
+      supplierProducts.sort((a,b)=>(b.invoice_count-a.invoice_count)||String(b.last_date||'').localeCompare(String(a.last_date||'')));
+
       const supplierMoves=[];
       for(const points of priceSeries.values()){
         const clean=points.filter(p=>Number.isFinite(p.price)).sort((a,b)=>a.ts-b.ts);
@@ -159,7 +177,8 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
         recoverable_to_30pct_30d:recoverable,
         target_food_cost_pct:targetPct,
         leaks:leaks.slice(0,12),
-        supplier_moves:supplierMoves.slice(0,12),
+        supplier_moves:supplierMoves.slice(0,50),
+        supplier_products:supplierProducts.slice(0,150),
         top_items:sales.slice(0,12).map(x=>({name:x.name,quantity:x.quantity,net_sales:(Number(x.net_sales_cents)||0)/100,food_cost_pct:x.actual_food_cost_pct,contribution:x.contribution,recipe_name:x.recipe_name||null}))
       });
     }
