@@ -243,6 +243,9 @@ input::placeholder,textarea::placeholder{color:#728aa2!important;opacity:1}
         <input id="sellingPrice" type="number" step="0.01" placeholder="Sell $" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
         <input id="yieldPortions" type="number" step="1" value="1" min="1" placeholder="Yield" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
       </div>
+      <div style="margin:10px 0 6px">
+        <input id="ingredientSearch" type="search" placeholder="Search ingredients…" aria-label="Search ingredients" style="width:100%;background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
+      </div>
       <div id="recipeRows"></div>
       <div style="display:flex;gap:10px;margin-top:10px">
         <button class="btn" id="addIngredientBtn">+ Ingredient</button>
@@ -399,7 +402,13 @@ function refreshIngredientSelects(){
 }
 function refreshIngredientSelect(sel){
   const old=sel.value;
-  sel.innerHTML='<option value="">Choose ingredient</option>'+ingredientCache.map(i=>
+  const q=(document.getElementById("ingredientSearch")?.value||"").trim().toLowerCase();
+  let rows=ingredientCache.filter(i=>!q||String(i.display_name||"").toLowerCase().includes(q)||String(i.supplier||"").toLowerCase().includes(q));
+  if(old&&!rows.some(i=>String(i.id)===String(old))){
+    const current=ingredientCache.find(i=>String(i.id)===String(old));
+    if(current) rows=[current,...rows];
+  }
+  sel.innerHTML='<option value="">Choose ingredient</option>'+rows.map(i=>
     `<option value="${i.id}">${escapeHtml(i.display_name)} · ${i.cost_per_gram!=null ? moneyUnit(i.cost_per_gram,"g") : "needs gram cost"}</option>`
   ).join("");
   if(old) sel.value=old;
@@ -417,6 +426,7 @@ function moneyUnit(v,u){
   return `$${n<0.01?n.toFixed(4):n.toFixed(2)}/${u||"unit"}`;
 }
 
+document.getElementById("ingredientSearch")?.addEventListener("input",refreshIngredientSelects);
 document.getElementById("addIngredientBtn")?.addEventListener("click",addRecipeRow);
 
 document.getElementById("saveRecipeBtn")?.addEventListener("click",async()=>{
