@@ -174,17 +174,63 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
       const response=await extractInvoice(request,{...env,DB:null});
       const result=await response.json();
       if(!response.ok) return reply(result,response.status);
-      const invoiceId=crypto.randomUUID();
-      data.invoices.push({id:invoiceId,...result});
-      for(const item of result.line_items||[]) {
-        if(!item.description||item.unit_price==null) continue;
-        const calc=deriveBaseCost(item.description,item.unit,item.unit_price);
-        const key=item.description.trim().toLowerCase();
-        let ingredient=data.ingredients.find(i=>i.normalized_key===key);
-        if(!ingredient) {ingredient={id:Math.max(0,...data.ingredients.map(i=>i.id))+1,normalized_key:key}; data.ingredients.push(ingredient);}
-        Object.assign(ingredient,{display_name:item.description,supplier:result.supplier_or_source,invoice_unit:item.unit,base_unit:calc.baseUnit,base_unit_cost:calc.baseCost,current_unit_price:item.unit_price});
+
+      const fingerprint=[
+        String(result.supplier_or_source||'').trim().toLowerCase(),
+        String(result.document_number||'').trim().toLowerCase(),
+        String(result.document_date||'').trim(),
+        String(result.total??'')
+      ].join('|');
+
+      let invoiceId=null, saved=false;
+      for(let attempt=0;attempt<8&&!saved;attempt++){
+        const fresh=await workspace(env,id);
+        const d=fresh.data;
+        const duplicate=(d.invoices||[]).find(inv=>[
+          String(inv.supplier_or_source||'').trim().toLowerCase(),
+          String(inv.document_number||'').trim().toLowerCase(),
+          String(inv.document_date||'').trim(),
+          String(inv.total??'')
+        ].join('|')===fingerprint && fingerprint!=='|||');
+
+        if(duplicate){
+          invoiceId=duplicate.id;
+          saved=true;
+          break;
+        }
+
+        invoiceId=crypto.randomUUID();
+        d.invoices.push({id:invoiceId,...result});
+
+        for(const item of result.line_items||[]) {
+          if(!item.description||item.unit_price==null) continue;
+          const calc=deriveBaseCost(item.description,item.unit,item.unit_price);
+          const key=item.description.trim().toLowerCase();
+          let ingredient=d.ingredients.find(i=>i.normalized_key===key);
+          if(!ingredient) {
+            ingredient={id:Math.max(0,...d.ingredients.map(i=>i.id))+1,normalized_key:key};
+            d.ingredients.push(ingredient);
+          }
+          Object.assign(ingredient,{
+            display_name:item.description,
+            supplier:result.supplier_or_source,
+            invoice_unit:item.unit,
+            base_unit:calc.baseUnit,
+            base_unit_cost:calc.baseCost,
+            current_unit_price:item.unit_price,
+            last_invoice_date:result.document_date||null
+          });
+        }
+
+        try{
+          await save(env,id,fresh);
+          saved=true;
+        }catch(error){
+          if(attempt===7) throw error;
+          await new Promise(r=>setTimeout(r,40+attempt*50));
+        }
       }
-      await save(env,id,record);
+
       return reply({...result,saved:true,invoice_id:invoiceId});
     }
     if(url.pathname==='/api/recipes'&&request.method==='POST') {
