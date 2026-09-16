@@ -7,7 +7,7 @@ async function api(path,options={}){
   if(!r.ok) throw new Error(j.error||('Request failed ('+r.status+')'));
   return j;
 }
-const targetToRoute={overview:'overview','profit-recovery':'profit-recovery','invoice-processing':'purchasing',purchasing:'purchasing',labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst','workspace-info':'workspace','square-pos':'workspace','account-panel':'workspace','commercial-settings':'workspace'};
+const targetToRoute={overview:'overview','profit-recovery':'profit-recovery','invoice-processing':'purchasing',purchasing:'purchasing',labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst','workspace-info':'workspace','square-pos':'square','account-panel':'workspace','commercial-settings':'workspace'};
 function go(route){
   const views=[...document.querySelectorAll('.p2p-page')];
   if(views.length){
@@ -26,6 +26,8 @@ function go(route){
   const el=$(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function wireNav(){
+  const nav=document.querySelector('.nav');
+  if(nav&&!nav.querySelector('a[data-square-nav]')){const a=document.createElement('a');a.href='#square';a.dataset.squareNav='1';a.innerHTML='<span class="icon">▣</span>Square';nav.insertBefore(a,nav.querySelector('a[href="#workspace-info"]')||null);}
   document.querySelectorAll('.nav a').forEach(a=>{
     a.onclick=e=>{e.preventDefault();const id=(a.getAttribute('href')||'').replace('#','');go(targetToRoute[id]||id||'overview');};
   });
@@ -33,7 +35,7 @@ function wireNav(){
 function moveDynamicWorkspaceCards(){
   const workspace=document.querySelector('.p2p-page[data-page="workspace"]');
   if(!workspace)return;
-  ['square-pos','commercial-settings'].forEach(id=>{const el=$(id);if(el&&el.parentElement!==workspace)workspace.appendChild(el);});
+  ['commercial-settings'].forEach(id=>{const el=$(id);if(el&&el.parentElement!==workspace)workspace.appendChild(el);});
 }
 function replaceButton(id){
   const old=$(id); if(!old)return null;
