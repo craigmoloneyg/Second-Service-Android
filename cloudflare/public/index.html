@@ -64,19 +64,41 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
 }
 
 /* Garnish visual system */
-:root{--bg:#f2efe6;--panel:#fffdf7;--panel2:#ebe7da;--line:#d7d0bf;--text:#161a16;--muted:#667064;--gold:#72b85c;--green:#72b85c;--red:#b84b48;--orange:#b77939;--blue:#557a6f;--nav:#111511}
-html,body{background:var(--bg)!important;color:var(--text)!important}
-.sidebar{background:#111511!important;border-right:1px solid #2a312a!important}
-.sidebar .logo{color:#f7f3e8!important;font-size:24px!important;letter-spacing:.04em!important}
-.sidebar .logo small{color:#8bd070!important;letter-spacing:.16em!important}
-.nav a{color:#aab4a8!important}.nav a.active,.nav a:hover{background:#202820!important;color:#f7f3e8!important}.nav .icon{color:#8bd070!important}
-.card{background:#fffdf7!important;border-color:#d7d0bf!important;box-shadow:0 12px 32px rgba(38,43,34,.05)!important;border-radius:18px!important}
-.btn{background:#e8e4d8!important;color:#182018!important;border-color:#d1cab7!important}.btn.primary{background:#182018!important;color:#f8f5eb!important;border-color:#182018!important}.btn.primary:hover{background:#72b85c!important;color:#101410!important}
-.kicker{color:#568d48!important}.plan-step{background:#f4f0e5!important;border-color:#d7d0bf!important}
-.ai-box input,input,textarea,select{background:#fffdf7!important;color:#161a16!important;border-color:#cfc8b8!important}
-.table th{color:#667064!important}.table td{border-color:#dfd8c9!important}
-.pill.green{background:#e1efda!important;color:#315d2b!important}.pill.blue{background:#e0ece8!important;color:#355d52!important}.pill.orange{background:#f5e6d3!important;color:#81511e!important}.pill.red{background:#f4dddd!important;color:#873a36!important}
-.progress{background:#ded9cb!important}.progress>span{background:#72b85c!important}
+:root{
+  --bg:#183229;--panel:#183229;--panel2:#203d33;--line:#3c5b4e;
+  --text:#f2f7f3;--muted:#b8c8be;--gold:#9bd681;--green:#9bd681;
+  --red:#ff938f;--orange:#e9b36f;--blue:#9fc7bb;--nav:#183229;
+}
+html,body{background:#183229!important;color:var(--text)!important}
+.shell,.main,.p2p-page-host{background:#183229!important}
+.sidebar{background:#183229!important;border-right:1px solid #3c5b4e!important}
+.sidebar .logo{color:#f2f7f3!important;font-size:24px!important;letter-spacing:.04em!important}
+.sidebar .logo small{color:#9bd681!important;letter-spacing:.16em!important}
+.sidebar-foot{color:#b8c8be!important;border-color:#3c5b4e!important}
+.nav a{color:#c7d5cc!important}
+.nav a.active,.nav a:hover{background:#28483b!important;color:#fff!important}
+.nav .icon{color:#9bd681!important}
+.card{background:#183229!important;border-color:#3c5b4e!important;box-shadow:none!important;border-radius:16px!important}
+.kicker{color:#9bd681!important}
+.muted,.evidence,.kpi .label,.table th{color:#b8c8be!important}
+.impact,h1,h2,h3,.kpi .value{color:#f2f7f3!important}
+.btn{background:#28483b!important;color:#f2f7f3!important;border-color:#49695b!important}
+.btn:hover{background:#315446!important}
+.btn.primary{background:#9bd681!important;color:#173027!important;border-color:#9bd681!important}
+.btn.primary:hover{background:#b2e29d!important;color:#173027!important}
+.btn.ghost{background:transparent!important;color:#f2f7f3!important}
+.plan-step{background:#203d33!important;border-color:#3c5b4e!important}
+.ai-box input,input,textarea,select{background:#203d33!important;color:#f2f7f3!important;border-color:#49695b!important}
+.table td{border-color:#3c5b4e!important}
+.progress{background:#28483b!important}.progress>span{background:#9bd681!important}
+.pill.green{background:#294b3d!important;color:#b7efa0!important}
+.pill.blue{background:#29473f!important;color:#b9ddd3!important}
+.pill.orange{background:#4d3d29!important;color:#efc78c!important}
+.pill.red{background:#4c3130!important;color:#ffaaa6!important}
+#invoiceResult,.p2p-ai-result{background:#203d33!important;color:#f2f7f3!important;border-color:#3c5b4e!important}
+.bars{border-color:#3c5b4e!important}
+.bar{background:linear-gradient(180deg,#9bd681,#5d9b7e)!important}
+.chart-line{background:#9bd681!important;box-shadow:none!important}
 </style>
 <link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07111e"><script>(()=>{const original=window.fetch.bind(window);const ready=original('/api/session',{credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error('Could not open your private workspace.');});window.fetch=async(input,options)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&url.pathname!='/api/session')await ready;const response=await original(input,options);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/api/report')){const parse=response.json.bind(response);response.json=async()=>{try{return await parse();}catch{throw new Error('The service returned an unreadable response. Please retry.');}};}return response;};})();</script></head>
 <body>
