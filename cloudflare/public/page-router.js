@@ -58,7 +58,7 @@ function build(){
   main.appendChild(host);
   const mobile=document.createElement('div');mobile.className='p2p-mobile-nav';mobile.innerHTML=`<select aria-label="Price 2 Plate section">${Object.entries(routes).map(([k,v])=>`<option value="${k}">${v.title}</option>`).join('')}</select>`;header?.after(mobile);mobile.querySelector('select').onchange=e=>go(e.target.value,true);
   document.querySelectorAll('.nav a').forEach(a=>{const id=(a.getAttribute('href')||'').replace('#','');const r=targetToRoute[id]||id;if(routes[r]){a.dataset.route=r;a.onclick=e=>{e.preventDefault();go(r,true);};}});
-  const observer=new MutationObserver(muts=>{for(const m of muts)for(const n of m.addedNodes){if(n.nodeType!==1)continue;if(n.id==='square-pos'){views.square.appendChild(n);}}});observer.observe(main,{childList:true});
+  const observer=new MutationObserver(()=>{const sq=document.getElementById('square-pos');if(sq&&sq.parentElement!==views.square)views.square.appendChild(sq);});observer.observe(main,{childList:true,subtree:true});
   let initial=targetToRoute[location.hash.slice(1)]||location.hash.slice(1)||'overview';if(!routes[initial])initial='overview';go(initial,false);
 }
 function go(route,push){
