@@ -8,6 +8,7 @@ const routes={
   bar:{title:'Bar',subtitle:'Beverage cost, pour margin and stock variance.'},
   analyst:{title:'Ask the Analyst',subtitle:'Interrogate your venue evidence in plain English.'},
   consultant:{title:'Live consultant',subtitle:'Message a real hospitality consultant and keep the conversation in one place.'},
+  'consultant-admin':{title:'Consultant inbox',subtitle:'Review and reply to customer consultant conversations.'},
   square:{title:'Square',subtitle:'Live POS connection, sales sync and menu activity.'},
   workspace:{title:'Workspace',subtitle:'Account, integrations, billing and venue settings.'}
 };
@@ -15,7 +16,7 @@ const map={
   overview:'overview','profit-recovery':'profit-recovery',
   'invoice-processing':'purchasing','supplier-intelligence':'purchasing','inventory-panel':'purchasing','inventory-panel':'purchasing',purchasing:'purchasing',
   labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst',
-  square:'square','square-pos':'square','live-consultant':'consultant','workspace-info':'workspace','account-panel':'workspace','commercial-settings':'workspace'
+  square:'square','square-pos':'square','live-consultant':'consultant','consultant-admin-panel':'consultant-admin','workspace-info':'workspace','account-panel':'workspace','commercial-settings':'workspace'
 };
 let views={};
 
@@ -27,6 +28,7 @@ function routeFor(el){
   if(h.includes('labour'))return 'labour';
   if(h.includes('menu')||h.includes('recipe')||h.includes('margin signal'))return 'menu-costing';
   if(h.includes('bar'))return 'bar';
+  if(h.includes('consultant inbox'))return 'consultant-admin';
   if(h.includes('live consultant')||h.includes('real consultant'))return 'consultant';
   if(h.includes('analyst'))return 'analyst';
   if(h.includes('profit'))return 'profit-recovery';
@@ -36,7 +38,7 @@ function routeFor(el){
 function moveKnown(){
   const places={
     'invoice-processing':'purchasing','supplier-intelligence':'purchasing',
-    'menu-costing':'menu-costing','square-pos':'square','live-consultant':'consultant','account-panel':'workspace','commercial-settings':'workspace'
+    'menu-costing':'menu-costing','square-pos':'square','live-consultant':'consultant','consultant-admin-panel':'consultant-admin','account-panel':'workspace','commercial-settings':'workspace'
   };
   for(const [id,r] of Object.entries(places)){
     const el=document.getElementById(id);
