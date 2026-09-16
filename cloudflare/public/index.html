@@ -145,10 +145,12 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
     </div>
     <span class="pill green" id="aiStatus">Ready</span>
   </div>
-  <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center">
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center">
     <input id="invoiceFile" type="file" accept=".pdf,image/*,.jpg,.jpeg,.jpe,.jfif,.pjpeg,.pjp,.png,.webp,.heic,.heif,.bmp,.gif,.tif,.tiff,.avif" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:13px">
-    <input id="invoiceCameraFile" type="file" accept="image/*,.jpg,.jpeg,.jpe,.jfif,.pjpeg,.pjp,.png,.webp,.heic,.heif,.bmp,.gif,.tif,.tiff,.avif" capture="environment" hidden>
-    <button class="btn" type="button" id="invoiceCameraBtn">📷 Scan invoice</button>
+    <input id="invoiceCameraFile" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="environment" hidden>
+    <input id="invoiceImageFile" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden>
+    <button class="btn" type="button" id="invoiceCameraBtn">📷 Take photo</button>
+    <button class="btn" type="button" id="invoiceImageBtn">🖼 Choose image</button>
     <button class="btn primary" id="analyseInvoiceBtn">Analyse invoice</button>
   </div>
   <div id="invoiceResult" style="margin-top:14px;display:none;padding:14px;background:#081522;border:1px solid var(--line);border-radius:12px"></div>
