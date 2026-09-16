@@ -96,7 +96,8 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
   let id=cookie.match(/(?:^|;\s*)p2p_workspace=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(url.pathname==='/api/session') {
     if(!id) id=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
-    return reply({ok:true},200,{'Set-Cookie':`p2p_workspace=${id}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=31536000`});
+    const auth=await authUser(env,cookie);
+    return reply({ok:true,authenticated:Boolean(auth),email:auth?.email||null},200,{'Set-Cookie':`p2p_workspace=${id}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=31536000`});
   }
   if(url.pathname==='/api/health') return reply({ok:true,version:'private-workspaces-1'});
   if(!id) return reply({error:'Please reopen the app to start your private workspace.'},401);
