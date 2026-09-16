@@ -5,8 +5,8 @@ compatibility_date = "2026-09-13"
 keep_vars = true
 
 [vars]
-SQUARE_APPLICATION_ID = "sandbox-sq0idb-EnUpCW6_2pJQKHmw9b2TCw"
-SQUARE_ENVIRONMENT = "sandbox"
+SQUARE_APPLICATION_ID = "sq0idp-AoYcPwCZmD4XTEafx3XGIg"
+SQUARE_ENVIRONMENT = "production"
 
 [assets]
 directory = "./public"
