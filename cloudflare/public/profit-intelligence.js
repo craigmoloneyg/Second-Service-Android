@@ -29,8 +29,18 @@ async function load(){
   const supplier=[...document.querySelectorAll('.card')].find(x=>x.querySelector('h2')?.textContent.trim()==='Supplier intelligence');
   if(supplier){
     const tbody=supplier.querySelector('tbody'),pill=supplier.querySelector('.pill');
-    if(pill)pill.textContent=(j.supplier_moves||[]).length+' movements';
-    if(tbody)tbody.innerHTML=(j.supplier_moves||[]).map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.supplier||'—')+'</td><td class="right">'+money(x.from)+'</td><td class="right">'+money(x.to)+'</td><td class="right">'+(x.change_pct>0?'+':'')+Number(x.change_pct).toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="5" class="muted">Upload repeat invoices to measure supplier price movement.</td></tr>';
+    const products=j.supplier_products||[],moves=j.supplier_moves||[];
+    if(pill)pill.textContent=products.length+' extracted items';
+    if(tbody){
+      tbody.innerHTML=products.slice(0,80).map(x=>{
+        const moved=x.invoice_count>1&&x.change_pct!=null;
+        return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.supplier||'—')+'</td><td class="right">'+money(x.first_price)+'</td><td class="right">'+money(x.current_price)+'</td><td class="right">'+(moved?((x.change_pct>0?'+':'')+Number(x.change_pct).toFixed(1)+'%'):'New')+'</td></tr>';
+      }).join('')||'<tr><td colspan="5" class="muted">No extracted invoice items are stored in this workspace yet.</td></tr>';
+    }
+    const head=supplier.querySelector('.card-head .muted');
+    if(head)head.textContent=products.length
+      ? 'Live extracted invoice products and supplier price movement'
+      : 'Invoice-derived purchasing movements';
   }
 
   const menu=[...document.querySelectorAll('.card')].find(x=>x.querySelector('h2')?.textContent.trim()==='Menu & margin signal');
