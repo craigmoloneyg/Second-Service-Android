@@ -13,7 +13,7 @@
   const status = document.getElementById('aiStatus');
   if (!input || !original || !output || !status || original.dataset.batchReady) return;
 
-  const MAX_FILES = 50;
+  const MAX_FILES = 75;
   const button = original.cloneNode(true);
   button.dataset.batchReady = 'true';
   original.replaceWith(button); // Replace the site's single-file click listener.
@@ -23,7 +23,7 @@
   input.parentElement.style.gridTemplateColumns = 'minmax(0, 1fr)';
   const hint = document.createElement('p');
   hint.className = 'muted';
-  hint.textContent = 'Select up to 50 PDF or image invoices. Each file is processed separately. Keep this screen open until the batch finishes.';
+  hint.textContent = 'Select up to 75 PDF or image invoices. Price 2 Plate processes several at once. You can move around the app while the batch runs.';
   input.parentElement.before(hint);
   const cancel = document.createElement('button');
   cancel.className = 'btn';
@@ -32,19 +32,13 @@
   button.after(cancel);
   const state = { running: false, stop: false };
   window.invoiceBatchState = state;
-  document.addEventListener('click', event => {
-    if (state.running && event.target.closest('a[href]')) {
-      event.preventDefault();
-      status.textContent = 'Wait for this batch or stop after the current invoice before leaving.';
-    }
-  }, true);
   const types = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
   function selection() { return Array.from(input.files || []); }
   function updateSelection() {
     const files = selection();
     button.textContent = files.length ? `Analyse ${files.length} invoice${files.length === 1 ? '' : 's'}` : 'Analyse invoices';
     button.disabled = state.running || files.length > MAX_FILES;
-    if (files.length > MAX_FILES) status.textContent = 'Choose 50 files or fewer';
+    if (files.length > MAX_FILES) status.textContent = 'Choose 75 files or fewer';
     else status.textContent = files.length ? `${files.length} selected` : 'Ready';
   }
   input.addEventListener('change', updateSelection);
@@ -86,7 +80,7 @@
     if (state.running) return;
     const files = selection();
     if (!files.length || files.length > MAX_FILES) {
-      status.textContent = files.length ? 'Choose 50 files or fewer' : 'Choose an invoice first';
+      status.textContent = files.length ? 'Choose 75 files or fewer' : 'Choose an invoice first';
       return;
     }
     state.running = true;
@@ -114,39 +108,31 @@
       return { row, label };
     });
     let completed = 0, succeeded = 0, failed = 0, saved = 0;
-    try {
-      // Sequential requests preserve invoice ordering and avoid flooding the extraction service.
-      for (let i = 0; i < files.length; i++) {
-        if (state.stop) break;
-        const file = files[i];
-        const { row, label } = rows[i];
-        button.textContent = `Processing ${i + 1} of ${files.length}…`;
-        status.textContent = `Reading ${i + 1} of ${files.length}`;
-        label.textContent = 'Uploading and analysing…';
-        try {
-          const mime = types[file.name.split('.').pop().toLowerCase()];
-          if (!mime || file.size === 0) throw new Error('Choose a non-empty PDF, PNG, JPEG or WebP file.');
-          const response = await fetch('/api/invoice/extract', {
-            method: 'POST',
-            headers: { 'Content-Type': mime, 'X-Filename': encodeURIComponent(file.name) },
-            body: file
-          });
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || `Invoice analysis failed (${response.status}).`);
-          if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('The server returned an unexpected result.');
-          renderResult(row, data);
-          succeeded++;
-          if (data.saved) saved++;
-          label.textContent = data.saved ? 'Saved & costed' : 'Extracted — not confirmed saved';
-        } catch (error) {
-          failed++;
-          label.textContent = `Needs attention: ${error.message}. Check purchasing history before retrying to avoid duplicates.`;
-        }
-        completed++;
-        meter.value = completed;
-        summary.textContent = `${completed} of ${files.length} processed · ${succeeded} extracted · ${saved} saved · ${failed} need attention`;
+    const concurrency = Math.min(5, files.length);
+    let nextIndex = 0;
+    const persist = () => { try { sessionStorage.setItem('p2pInvoiceBatch', JSON.stringify({running:state.running,total:files.length,completed,succeeded,failed,saved,updated_at:new Date().toISOString()})); } catch(_){} };
+    const refresh = () => { meter.value = completed; button.textContent = `Processing ${completed} of ${files.length}…`; status.textContent = `${completed} of ${files.length} complete`; summary.textContent = `${completed} of ${files.length} processed · ${succeeded} extracted · ${saved} saved · ${failed} need attention`; persist(); };
+    async function worker(){
+      while(!state.stop){
+        const i=nextIndex++; if(i>=files.length)return;
+        const file=files[i],{row,label}=rows[i];
+        label.textContent='Uploading and analysing…';
+        try{
+          const mime=types[file.name.split('.').pop().toLowerCase()];
+          if(!mime||file.size===0)throw new Error('Choose a non-empty PDF, PNG, JPEG or WebP file.');
+          const response=await fetch('/api/invoice/extract',{method:'POST',headers:{'Content-Type':mime,'X-Filename':encodeURIComponent(file.name)},body:file});
+          const data=await response.json();
+          if(!response.ok)throw new Error(data.error||`Invoice analysis failed (${response.status}).`);
+          if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('The server returned an unexpected result.');
+          renderResult(row,data);succeeded++;if(data.saved)saved++;label.textContent=data.saved?'Saved & costed':'Extracted — not confirmed saved';
+        }catch(error){failed++;label.textContent=`Needs attention: ${error.message}. Check purchasing history before retrying to avoid duplicates.`;}
+        completed++;refresh();
       }
-      for (let i = completed; i < rows.length; i++) rows[i].label.textContent = 'Not uploaded — batch stopped';
+    }
+    try {
+      persist();
+      await Promise.all(Array.from({length:concurrency},()=>worker()));
+      for(let i=nextIndex;i<rows.length;i++)rows[i].label.textContent='Not uploaded — batch stopped';
       if (saved) {
         try {
           if (typeof loadIngredients === 'function') await loadIngredients();
@@ -157,6 +143,7 @@
         : failed ? `Complete · ${failed} need attention` : `${succeeded} invoices complete`;
     } finally {
       state.running = false;
+      try { sessionStorage.setItem('p2pInvoiceBatch', JSON.stringify({running:false,total:files.length,completed,succeeded,failed,saved,updated_at:new Date().toISOString()})); } catch(_){}
       input.disabled = false;
       button.disabled = false;
       input.value = ''; // A second click must not resubmit the completed batch.
