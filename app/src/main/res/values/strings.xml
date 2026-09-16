@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Price 2 Plate</string>
-    <string name="load_error">Price 2 Plate couldn’t load this page. Check your connection and try again.</string>
+    <string name="app_name">Garnish</string>
+    <string name="load_error">Garnish couldn’t load this page. Check your connection and try again.</string>
 </resources>
