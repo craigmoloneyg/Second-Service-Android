@@ -37,7 +37,7 @@
   const home = document.createElement('main');
   home.className = 'p2p-home';
   home.id = 'p2p-home';
-  home.innerHTML = `<section class="p2p-hero"><div><p class="p2p-eyebrow">Your kitchen. Your numbers.</p><h1 tabindex="-1">Good food.<br><em>Better margins.</em></h1><p class="p2p-intro">A little clarity goes a long way. Turn supplier invoices into ingredient costs, cost your menu, and see where your money goes.</p><div class="p2p-actions"><button class="p2p-primary" data-view="invoices">Upload invoices <span aria-hidden="true">↗</span></button><button class="p2p-secondary" data-view="dashboard">Open dashboard</button></div><p class="p2p-helper">PDFs and images · Up to 50 invoices per batch</p></div><div class="p2p-art" aria-hidden="true"><div class="p2p-plate"></div><div class="p2p-receipt"><div class="p2p-paper-title">From price to plate.</div><div class="p2p-paper-small">Make every ingredient count</div><div class="p2p-paper-row"><span>Supplier invoices</span><span>01</span></div><div class="p2p-paper-row"><span>Ingredient costs</span><span>02</span></div><div class="p2p-paper-row"><span>Menu margins</span><span>03</span></div></div><div class="p2p-seal"><span>↗</span>Clarity for your next service</div></div></section><div class="p2p-section-title"><h2>Where would you like to start?</h2><span>One workspace. A clearer picture.</span></div><section class="p2p-tiles" aria-label="Quick actions"><button class="p2p-tile" data-view="invoices"><span class="p2p-number">01 / PURCHASING</span><strong>Bring your invoices.</strong><p>Upload supplier documents and review the costs extracted from each one.</p></button><button class="p2p-tile" data-view="menu"><span class="p2p-number">02 / MENU COSTING</span><strong>Know every plate.</strong><p>Build recipes from ingredient prices and calculate your portion costs.</p></button><button class="p2p-tile" data-view="dashboard"><span class="p2p-number">03 / THE BIG PICTURE</span><strong>See how it adds up.</strong><p>Open your workspace to review the figures and explore your next steps.</p></button></section><footer class="p2p-bottom"><span>Price 2 Plate · Made for the business of good food.</span><span>Costs in focus. Food at heart.</span></footer>`;
+  home.innerHTML = `<section class="p2p-hero"><div><p class="p2p-eyebrow">Your kitchen. Your numbers.</p><h1 tabindex="-1">Good food.<br><em>Better margins.</em></h1><p class="p2p-intro">A little clarity goes a long way. Turn supplier invoices into ingredient costs, cost your menu, and see where your money goes.</p><div class="p2p-actions"><button class="p2p-primary" data-view="invoices">Upload invoices <span aria-hidden="true">↗</span></button><button class="p2p-secondary" data-view="dashboard">Open dashboard</button></div><p class="p2p-helper">PDFs and images · Up to 75 invoices per batch</p></div><div class="p2p-art" aria-hidden="true"><div class="p2p-plate"></div><div class="p2p-receipt"><div class="p2p-paper-title">From price to plate.</div><div class="p2p-paper-small">Make every ingredient count</div><div class="p2p-paper-row"><span>Supplier invoices</span><span>01</span></div><div class="p2p-paper-row"><span>Ingredient costs</span><span>02</span></div><div class="p2p-paper-row"><span>Menu margins</span><span>03</span></div></div><div class="p2p-seal"><span>↗</span>Clarity for your next service</div></div></section><div class="p2p-section-title"><h2>Where would you like to start?</h2><span>One workspace. A clearer picture.</span></div><section class="p2p-tiles" aria-label="Quick actions"><button class="p2p-tile" data-view="invoices"><span class="p2p-number">01 / PURCHASING</span><strong>Bring your invoices.</strong><p>Upload supplier documents and review the costs extracted from each one.</p></button><button class="p2p-tile" data-view="menu"><span class="p2p-number">02 / MENU COSTING</span><strong>Know every plate.</strong><p>Build recipes from ingredient prices and calculate your portion costs.</p></button><button class="p2p-tile" data-view="dashboard"><span class="p2p-number">03 / THE BIG PICTURE</span><strong>See how it adds up.</strong><p>Open your workspace to review the figures and explore your next steps.</p></button></section><footer class="p2p-bottom"><span>Price 2 Plate · Made for the business of good food.</span><span>Costs in focus. Food at heart.</span></footer>`;
   const note = document.createElement('div');
   note.className = 'p2p-note';
   note.setAttribute('role', 'status');
@@ -45,22 +45,26 @@
   document.body.append(note);
   let noticeTimer;
   function show(view, focus = true) {
-    if (window.invoiceBatchState?.running) {
-      note.textContent = 'Your invoices are processing. Finish the batch or stop after the current invoice first.';
-      clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { note.textContent = ''; }, 6000);
-      return;
-    }
     const isHome = view === 'home';
-    home.hidden = !isHome; shell.hidden = isHome;
+    home.hidden = !isHome;
+    shell.hidden = isHome;
     bar.querySelectorAll('[data-view]').forEach(button => {
       if (button.dataset.view === view) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
     });
-    const target = isHome ? home.querySelector('h1') : document.querySelector(view === 'invoices' ? '#invoice-processing' : view === 'menu' ? '#menu-costing' : '.main');
+
+    if (!isHome) {
+      const route = view === 'invoices' ? 'purchasing' : view === 'menu' ? 'menu-costing' : 'overview';
+      if (typeof window.P2P_ROUTE_GO === 'function') {
+        window.P2P_ROUTE_GO(route, true);
+      } else {
+        location.hash = '#'+route;
+      }
+    }
+
+    const target = isHome ? home.querySelector('h1') : null;
     if (target && focus) {
       target.setAttribute('tabindex', '-1');
       target.focus({preventScroll:true});
-      target.style.scrollMarginTop = '140px';
-      target.scrollIntoView({block:'start'});
     }
   }
   [home, bar].forEach(root => root.addEventListener('click', event => {
@@ -178,7 +182,6 @@
     const output=document.createElement('div');output.className='p2p-ai-result';output.hidden=true;output.setAttribute('role','status');host.append(button,output);
     button.addEventListener('click',async()=>{button.disabled=true;output.hidden=false;output.textContent='Reviewing your workspace…';try{const response=await fetch('/api/ai/advice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,question:prompt})});const result=await response.json();if(!response.ok)throw new Error(result.error||'The analyst could not answer.');output.textContent=result.advice.summary;}catch(e){output.textContent=e.message;}finally{button.disabled=false;}});
   }
-  for(const link of document.querySelectorAll('.nav a'))link.addEventListener('click',event=>{const target=document.querySelector(link.getAttribute('href'));if(!target)return;event.preventDefault();document.getElementById('p2p-home').hidden=true;document.querySelector('.shell').hidden=false;target.setAttribute('tabindex','-1');target.focus({preventScroll:true});target.scrollIntoView({behavior:'smooth'});});
 })();
 
 
