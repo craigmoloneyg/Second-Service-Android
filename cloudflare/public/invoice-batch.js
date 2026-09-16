@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const MAX_FILES=75,CONCURRENCY=4;
-const types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'};
+const types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',jpe:'image/jpeg',jfif:'image/jpeg',pjpeg:'image/jpeg',pjp:'image/jpeg',webp:'image/webp',heic:'image/heic',heif:'image/heif',bmp:'image/bmp',gif:'image/gif',tif:'image/tiff',tiff:'image/tiff',avif:'image/avif'};
 const state=window.invoiceBatchState||{running:false,stop:false};
 window.invoiceBatchState=state;
 const $=id=>document.getElementById(id);
@@ -66,7 +66,8 @@ async function runBatch(){
       const file=selected[i],r=rows[i];r.label.textContent='Uploading and analysing…';
       try{
         const ext=file.name.split('.').pop().toLowerCase(),mime=types[ext]||file.type;
-        if(!types[ext]||!file.size)throw new Error('File must be a non-empty PDF, PNG, JPEG or WebP.');
+        const isImage=(file.type||'').toLowerCase().startsWith('image/');
+        if((!types[ext]&&!isImage)||!file.size)throw new Error('File must be a non-empty PDF or image file.');
         const res=await fetch('/api/invoice/extract',{method:'POST',headers:{'Content-Type':mime,'X-Filename':encodeURIComponent(file.name)},body:file});
         let data={};try{data=await res.json()}catch{}
         if(!res.ok)throw new Error(data.error||('Invoice analysis failed ('+res.status+').'));
