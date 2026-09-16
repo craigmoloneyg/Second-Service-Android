@@ -49,8 +49,20 @@ function calculateEstimateHealth(x){
 }
 async function ensureAuthTables(env){
   if(!env.DB) return;
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_accounts (id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL,password_salt TEXT NOT NULL,workspace_id TEXT UNIQUE NOT NULL,created_at TEXT NOT NULL)").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_accounts (id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT,password_salt TEXT,workspace_id TEXT,created_at TEXT)").run();
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_sessions (token TEXT PRIMARY KEY,account_id TEXT NOT NULL,expires_at TEXT NOT NULL)").run();
+  const accountCols=(await env.DB.prepare("PRAGMA table_info(p2p_accounts)").all()).results||[];
+  const names=new Set(accountCols.map(x=>x.name));
+  const additions=[
+    ['password_hash','TEXT'],['password_salt','TEXT'],['workspace_id','TEXT'],['created_at','TEXT']
+  ];
+  for(const [name,type] of additions){
+    if(!names.has(name)) await env.DB.prepare(`ALTER TABLE p2p_accounts ADD COLUMN ${name} ${type}`).run();
+  }
+  const sessionCols=(await env.DB.prepare("PRAGMA table_info(p2p_sessions)").all()).results||[];
+  const sessionNames=new Set(sessionCols.map(x=>x.name));
+  if(!sessionNames.has('account_id')) await env.DB.prepare("ALTER TABLE p2p_sessions ADD COLUMN account_id TEXT").run();
+  if(!sessionNames.has('expires_at')) await env.DB.prepare("ALTER TABLE p2p_sessions ADD COLUMN expires_at TEXT").run();
 }
 const tokenHex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2,"0")).join("");
 const b64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
@@ -63,30 +75,47 @@ async function authUser(env,cookie){
   return row;
 }
 async function authApi(request,env,action){
-  if(!env.DB) return reply({error:"Account storage is not configured yet."},503);
-  if(action==="signout") return reply({ok:true},200,{"Set-Cookie":"p2p_auth=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0"});
-  let body={}; try{body=await request.json();}catch{}
-  const email=String(body.email||"").trim().toLowerCase(), password=String(body.password||"");
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({error:"Enter a valid email address."},400);
-  if(password.length<10||password.length>200) return reply({error:"Use a password between 10 and 200 characters."},400);
-  if(action==="signup"){
-    const existing=await env.DB.prepare("SELECT id FROM p2p_accounts WHERE email=?").bind(email).first();
-    if(existing) return reply({error:"An account with that email already exists. Sign in instead."},409);
-    const id=tokenHex(), salt=tokenHex(), workspaceId=tokenHex(), hash=await hashPassword(password,salt), now=new Date().toISOString();
-    await env.DB.prepare("INSERT INTO p2p_accounts (id,email,password_hash,password_salt,workspace_id,created_at) VALUES (?,?,?,?,?,?)").bind(id,email,hash,salt,workspaceId,now).run();
-    const token=tokenHex(), expires=new Date(Date.now()+2592000000).toISOString();
-    await env.DB.prepare("INSERT INTO p2p_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,id,expires).run();
-    return reply({ok:true,email},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000"});
+  try{
+    if(!env.DB) return reply({error:"Account storage is not configured yet."},503);
+    await ensureAuthTables(env);
+    if(action==="signout") return reply({ok:true},200,{"Set-Cookie":"p2p_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"});
+    let body={}; try{body=await request.json();}catch{}
+    const email=String(body.email||"").trim().toLowerCase(), password=String(body.password||"");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({error:"Enter a valid email address."},400);
+    if(password.length<10||password.length>200) return reply({error:"Use a password between 10 and 200 characters."},400);
+
+    const issueSession=async(accountId)=>{
+      const token=tokenHex(), expires=new Date(Date.now()+2592000000).toISOString();
+      await env.DB.prepare("INSERT INTO p2p_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,accountId,expires).run();
+      return reply({ok:true,email},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000"});
+    };
+
+    if(action==="signup"){
+      const existing=await env.DB.prepare("SELECT * FROM p2p_accounts WHERE lower(email)=?").bind(email).first();
+      if(existing){
+        if(existing.password_hash&&existing.password_salt){
+          const match=(await hashPassword(password,existing.password_salt))===existing.password_hash;
+          if(match) return issueSession(existing.id);
+        }
+        return reply({error:"An account with that email already exists. Use Sign in instead."},409);
+      }
+      const id=tokenHex(), salt=tokenHex(), workspaceId=tokenHex(), hash=await hashPassword(password,salt), now=new Date().toISOString();
+      await env.DB.prepare("INSERT INTO p2p_accounts (id,email,password_hash,password_salt,workspace_id,created_at) VALUES (?,?,?,?,?,?)").bind(id,email,hash,salt,workspaceId,now).run();
+      return issueSession(id);
+    }
+
+    const account=await env.DB.prepare("SELECT * FROM p2p_accounts WHERE lower(email)=?").bind(email).first();
+    if(!account||!account.password_hash||!account.password_salt) return reply({error:"Email or password is incorrect."},401);
+    const match=(await hashPassword(password,account.password_salt))===account.password_hash;
+    if(!match) return reply({error:"Email or password is incorrect."},401);
+    return issueSession(account.id);
+  }catch(error){
+    console.error("Garnish auth error",error?.stack||error?.message||error);
+    return reply({error:"The account service hit an error. Please try again now."},503);
   }
-  const account=await env.DB.prepare("SELECT * FROM p2p_accounts WHERE email=?").bind(email).first();
-  if(!account||!(await hashPassword(password,account.password_salt)===account.password_hash)) return reply({error:"Email or password is incorrect."},401);
-  const token=tokenHex(), expires=new Date(Date.now()+2592000000).toISOString();
-  await env.DB.prepare("INSERT INTO p2p_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,account.id,expires).run();
-  return reply({ok:true,email},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000"});
 }
 export async function api(request,env,extractInvoice,deriveBaseCost,outputText) {
   const url=new URL(request.url);
-  await ensureAuthTables(env);
   if(url.pathname==='/api/auth/signup') return authApi(request,env,'signup');
   if(url.pathname==='/api/auth/signin') return authApi(request,env,'signin');
   if(url.pathname==='/api/auth/signout') return authApi(request,env,'signout');
