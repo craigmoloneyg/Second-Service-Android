@@ -1,12 +1,12 @@
 // Public workspaces never query the legacy owner tables.
 const reply = (value, status = 200, headers = {}) => new Response(JSON.stringify(value), {status, headers: {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers}});
-const blank = () => ({ingredients:[],recipes:[],invoices:[],inventory:[],plans:[]});
+const blank = () => ({ingredients:[],recipes:[],invoices:[],inventory:[],plans:[],estimates:null});
 async function workspace(env, id) {
   if (!env.DB) throw new Error('Workspace storage is unavailable. Please try again later.');
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS p2p_private_workspaces (id TEXT PRIMARY KEY, revision INTEGER NOT NULL DEFAULT 0, data TEXT NOT NULL)').run();
   const row = await env.DB.prepare('SELECT revision,data FROM p2p_private_workspaces WHERE id=?').bind(id).first();
   if (!row) return {data:blank(),revision:0};
-  const data=JSON.parse(row.data); if(!Array.isArray(data.inventory))data.inventory=[]; return {data,revision:row.revision};
+  const data=JSON.parse(row.data); if(!Array.isArray(data.inventory))data.inventory=[]; if(!('estimates' in data))data.estimates=null; return {data,revision:row.revision};
 }
 async function save(env,id,record) {
   const data=JSON.stringify(record.data);
@@ -30,6 +30,23 @@ function costRecipe(recipe,ingredients) {
   return {...recipe,items,batch_cost:batch,portion_cost:portion,food_cost_pct:portion!==null&&recipe.selling_price>0?portion/recipe.selling_price*100:null,gross_profit:portion===null?null:recipe.selling_price-portion,target_price_28:portion===null?null:portion/.28,target_price_30:portion===null?null:portion/.30};
 }
 
+function calculateEstimateHealth(x){
+  const covers=Number(x?.covers||0),avgSpend=Number(x?.avg_spend||0),food=Number(x?.food_costs||0),wages=Number(x?.wages||0),operating=Number(x?.operating_costs||0);
+  const revenue=covers>0&&avgSpend>=0?covers*avgSpend:0;
+  const foodPct=revenue>0?food*100/revenue:null,labourPct=revenue>0?wages*100/revenue:null;
+  const primeCostPct=revenue>0?(food+wages)*100/revenue:null;
+  const operatingProfit=revenue-food-wages-operating;
+  const operatingMarginPct=revenue>0?operatingProfit*100/revenue:null;
+  let score=null;
+  if(revenue>0){
+    let s=100;
+    if(foodPct!=null)s-=Math.max(0,foodPct-30)*2;
+    if(labourPct!=null)s-=Math.max(0,labourPct-35)*2;
+    if(operatingMarginPct!=null)s-=Math.max(0,10-operatingMarginPct)*2;
+    score=Math.max(0,Math.min(100,Math.round(s)));
+  }
+  return {covers,avg_spend:avgSpend,food_costs:food,wages,operating_costs:operating,revenue,food_cost_pct:foodPct,labour_pct:labourPct,prime_cost_pct:primeCostPct,operating_profit:operatingProfit,operating_margin_pct:operatingMarginPct,health_score:score};
+}
 async function ensureAuthTables(env){
   if(!env.DB) return;
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_accounts (id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL,password_salt TEXT NOT NULL,workspace_id TEXT UNIQUE NOT NULL,created_at TEXT NOT NULL)").run();
@@ -50,7 +67,7 @@ async function authApi(request,env,action){
   if(action==="signout") return reply({ok:true},200,{"Set-Cookie":"p2p_auth=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0"});
   let body={}; try{body=await request.json();}catch{}
   const email=String(body.email||"").trim().toLowerCase(), password=String(body.password||"");
-  if(!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)) return reply({error:"Enter a valid email address."},400);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({error:"Enter a valid email address."},400);
   if(password.length<10||password.length>200) return reply({error:"Use a password between 10 and 200 characters."},400);
   if(action==="signup"){
     const existing=await env.DB.prepare("SELECT id FROM p2p_accounts WHERE email=?").bind(email).first();
@@ -182,6 +199,17 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
         top_items:sales.slice(0,12).map(x=>({name:x.name,quantity:x.quantity,net_sales:(Number(x.net_sales_cents)||0)/100,food_cost_pct:x.actual_food_cost_pct,contribution:x.contribution,recipe_name:x.recipe_name||null}))
       });
     }
+    if(url.pathname==='/api/estimates'&&request.method==='GET') {
+      return reply({estimate:data.estimates?calculateEstimateHealth(data.estimates):null});
+    }
+    if(url.pathname==='/api/estimates'&&request.method==='POST') {
+      const body=await request.json();
+      const clean={covers:Number(body.covers),avg_spend:Number(body.avg_spend),food_costs:Number(body.food_costs),wages:Number(body.wages),operating_costs:Number(body.operating_costs)};
+      if(Object.values(clean).some(v=>!Number.isFinite(v)||v<0)) return reply({error:'Enter zero or positive numbers in every estimate field.'},400);
+      data.estimates=clean;
+      await save(env,id,record);
+      return reply({estimate:calculateEstimateHealth(clean),saved:true});
+    }
     if(url.pathname==='/api/inventory'&&request.method==='GET') {
       const rows=(data.inventory||[]).slice().sort((a,b)=>(Date.parse(b.last_received_at||'')||0)-(Date.parse(a.last_received_at||'')||0));
       return reply({inventory:rows});
@@ -307,7 +335,11 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
         const auth=await authUser(env,cookie);
         if(auth?.id){
           const row=await env.DB.prepare('SELECT business_id,last_sync_at,snapshot FROM p2p_myob_connections WHERE account_id=?').bind(auth.id).first();
-          if(row?.snapshot) myob={business_id:row.business_id,last_sync_at:row.last_sync_at,...JSON.parse(row.snapshot)};
+          if(row?.snapshot) myob={source:'live',business_id:row.business_id,last_sync_at:row.last_sync_at,...JSON.parse(row.snapshot)};
+          if(!myob){
+            const {results=[]}=await env.DB.prepare('SELECT kind,filename,imported_at,snapshot FROM p2p_myob_imports WHERE account_id=? ORDER BY imported_at DESC LIMIT 12').bind(auth.id).all();
+            if(results.length)myob={source:'import',last_sync_at:results[0].imported_at,imports:results.map(r=>({kind:r.kind,filename:r.filename,imported_at:r.imported_at,data:JSON.parse(r.snapshot)}))};
+          }
         }
       }catch{}
 
@@ -349,11 +381,14 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
           top_items:(square.top_items||[]).slice(0,100)
         }:null,
         myob:myob?{
-          business_id:myob.business_id,
+          source:myob.source||'live',
+          business_id:myob.business_id||null,
           last_sync_at:myob.last_sync_at,
           period:myob.period||null,
-          profit_and_loss:myob.profit_and_loss||null
-        }:null
+          profit_and_loss:myob.profit_and_loss||null,
+          imports:myob.imports||null
+        }:null,
+        estimates:data.estimates?calculateEstimateHealth(data.estimates):null
       };
 
       const response=await fetch('https://api.openai.com/v1/responses',{
@@ -362,7 +397,7 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
         headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
         body:JSON.stringify({
           model:env.OPENAI_MODEL||'gpt-5.6-luna',
-          instructions:'You are the Price 2 Plate restaurant operations analyst. The supplied JSON is the source of truth and includes invoice headers, invoice line items, ingredient costs, recipes, Square sales and synced MYOB accounting evidence when available. Use the actual invoice, Square and MYOB evidence in your answer. Cite concrete supplier names, products, prices, quantities, sales and margins from the supplied data when relevant. Distinguish measured facts from interpretation. Code calculates financial metrics; you interpret them. Never invent missing figures. If a requested figure is unavailable, say exactly which record is missing. Return concise plain text.',
+          instructions:'You are the Price 2 Plate restaurant operations analyst. The supplied JSON is the source of truth and includes invoice headers, invoice line items, ingredient costs, recipes, Square sales and synced or imported MYOB accounting evidence and operator estimate inputs when available. Use the actual invoice, Square and MYOB evidence in your answer. Cite concrete supplier names, products, prices, quantities, sales and margins from the supplied data when relevant. Distinguish measured facts from interpretation. Code calculates financial metrics; you interpret them. Never invent missing figures. If a requested figure is unavailable, say exactly which record is missing. Return concise plain text.',
           input:JSON.stringify(analystContext),
           max_output_tokens:2600
         })
