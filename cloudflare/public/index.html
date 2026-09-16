@@ -111,7 +111,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
 
   <section class="grid-2 equal">
     <div class="card" id="supplier-intelligence">
-      <div class="card-head"><div><h2>Supplier intelligence</h2><div class="muted">Invoice-derived purchasing movements</div></div><span class="pill blue">No data yet</span></div>
+      <div class="card-head"><div><h2>Supplier intelligence</h2><div class="muted">Invoice-derived purchasing movements</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="purchasingSortBy" aria-label="Sort purchasing"><option value="name">Product</option><option value="supplier">Supplier</option><option value="current_price">Current price</option><option value="change_pct">Price movement %</option><option value="invoice_count">Invoice count</option><option value="last_date">Last received</option></select><select id="purchasingSortDir" aria-label="Purchasing sort direction"><option value="asc">A–Z / Low to high</option><option value="desc">Z–A / High to low</option></select><span class="pill blue">No data yet</span></div></div>
       <table class="table"><thead><tr><th>Product</th><th>Supplier</th><th class="right">From</th><th class="right">To</th><th class="right">Move</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="card" id="labour">
@@ -159,7 +159,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
 <section class="card" id="inventory-panel" style="margin-top:14px">
   <div class="card-head">
     <div><h2>Inventory</h2><div class="muted">Invoice quantities are added automatically when an invoice is saved.</div></div>
-    <span class="pill green" id="inventoryStatus">Loading</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="inventorySortBy" aria-label="Sort inventory"><option value="display_name">Ingredient</option><option value="supplier">Supplier</option><option value="quantity_on_hand">On hand</option><option value="last_unit_price">Last price</option><option value="last_received_at">Last received</option></select><select id="inventorySortDir" aria-label="Inventory sort direction"><option value="asc">A–Z / Low to high</option><option value="desc">Z–A / High to low</option></select><span class="pill green" id="inventoryStatus">Loading</span></div>
   </div>
   <div style="overflow-x:auto">
     <table class="table">
