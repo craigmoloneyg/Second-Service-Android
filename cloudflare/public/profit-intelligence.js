@@ -53,7 +53,7 @@ async function load(){
   const recovery=document.getElementById('recovery-plan');
   if(recovery){
     const pill=recovery.querySelector('.pill');
-    if(pill){pill.textContent='Live';pill.className='pill green';}
+    if(pill){pill.textContent='AI ready';pill.className='pill green';}
     const plan=recovery.querySelector('.plan');
     if(plan){
       const topMove=(j.supplier_moves||[])[0];
@@ -88,7 +88,44 @@ async function load(){
         '<div class="plan-step"><strong>DAYS 61–90 · PROVE RECOVERY</strong><p>'+esc(day61)+'</p></div>';
     }
     const sub=recovery.querySelector('.card-head .muted');
-    if(sub)sub.textContent='Live plan built from '+(j.invoice_count_all_time||0)+' invoices, '+money(j.revenue_30d)+' Square revenue and '+pct(j.mapped_sales_share_pct)+' mapped sales.';
+    if(sub)sub.textContent='Baseline built from '+(j.invoice_count_all_time||0)+' invoices, '+money(j.revenue_30d)+' Square revenue and '+pct(j.mapped_sales_share_pct)+' mapped sales. Use AI to turn this into a venue-specific recovery plan.';
+
+    let controls=recovery.querySelector('#recoveryAiControls');
+    if(!controls){
+      controls=document.createElement('div');
+      controls.id='recoveryAiControls';
+      controls.style.cssText='margin-top:16px;padding-top:16px;border-top:1px solid var(--line)';
+      controls.innerHTML='<button type="button" class="btn primary" id="generateRecoveryPlanBtn">Generate AI 90-day plan</button><div id="recoveryAiOutput" class="p2p-ai-result" hidden style="margin-top:14px;white-space:pre-wrap"></div>';
+      recovery.appendChild(controls);
+      const btn=controls.querySelector('#generateRecoveryPlanBtn');
+      const out=controls.querySelector('#recoveryAiOutput');
+      btn.addEventListener('click',async()=>{
+        btn.disabled=true;
+        btn.textContent='Building AI recovery plan…';
+        out.hidden=false;
+        out.textContent='Analysing Square sales, invoices, supplier movements, ingredient costs and menu performance…';
+        try{
+          const r=await fetch('/api/ai/advice',{
+            method:'POST',
+            credentials:'same-origin',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+              area:'recovery-plan',
+              question:'Build a specific 90-day restaurant profit recovery plan using all evidence in this workspace. Structure it as DAYS 1–14, DAYS 15–30, DAYS 31–60 and DAYS 61–90. Use actual invoice suppliers and product prices, Square sales, mapped recipe costs, dish margins and contribution where available. Prioritise the highest-value opportunities first. For every phase give concrete actions, the metric to watch, and what success looks like. Do not give generic advice when workspace evidence exists. Do not invent missing figures.'
+            })
+          });
+          const x=await r.json();
+          if(!r.ok)throw new Error(x.error||'The AI recovery plan could not be generated.');
+          out.textContent=x.advice?.summary||'No AI recovery plan was returned.';
+          btn.textContent='Regenerate AI 90-day plan';
+        }catch(e){
+          out.textContent=e.message;
+          btn.textContent='Generate AI 90-day plan';
+        }finally{
+          btn.disabled=false;
+        }
+      });
+    }
   }
 }
 window.addEventListener('p2p-data-changed',load);
