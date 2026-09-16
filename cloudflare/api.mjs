@@ -74,6 +74,25 @@ async function authUser(env,cookie){
   if(!row||Date.parse(row.expires_at)<=Date.now()) return null;
   return row;
 }
+async function mergeWorkspaceIntoAccount(env,fromId,toId){
+  if(!env.DB||!fromId||!toId||fromId===toId)return;
+  const from=await workspace(env,fromId);
+  const to=await workspace(env,toId);
+  const merged=to.data;
+  const src=from.data;
+  const byKey=(arr,keyFn)=>new Map(arr.map(x=>[keyFn(x),x]));
+  const mergeUnique=(target,source,keyFn)=>{
+    const seen=byKey(target,keyFn);
+    for(const item of source||[]){const k=keyFn(item);if(!seen.has(k)){target.push(item);seen.set(k,item);}}
+  };
+  mergeUnique(merged.invoices,src.invoices,x=>[x.supplier_or_source,x.document_number,x.document_date,x.total].join('|').toLowerCase());
+  mergeUnique(merged.ingredients,src.ingredients,x=>String(x.normalized_key||x.display_name||x.id).toLowerCase());
+  mergeUnique(merged.recipes,src.recipes,x=>String(x.name||x.id).toLowerCase());
+  mergeUnique(merged.inventory,src.inventory,x=>String(x.stock_key||x.id));
+  mergeUnique(merged.plans,src.plans,x=>String(x.id||x.title||JSON.stringify(x)));
+  if(!merged.estimates&&src.estimates)merged.estimates=src.estimates;
+  await save(env,to,{data:merged,revision:to.revision});
+}
 async function authApi(request,env,action){
   try{
     if(!env.DB) return reply({error:"Account storage is not configured yet."},503);
@@ -85,9 +104,17 @@ async function authApi(request,env,action){
     if(password.length<10||password.length>200) return reply({error:"Use a password between 10 and 200 characters."},400);
 
     const issueSession=async(accountId)=>{
+      const account=await env.DB.prepare("SELECT workspace_id FROM p2p_accounts WHERE id=?").bind(accountId).first();
+      const accountWorkspace=account?.workspace_id||tokenHex();
+      if(!account?.workspace_id)await env.DB.prepare("UPDATE p2p_accounts SET workspace_id=? WHERE id=?").bind(accountWorkspace,accountId).run();
+      const cookie=request.headers.get('cookie')||'';
+      const anonWorkspace=cookie.match(/(?:^|;\s*)p2p_workspace=([a-f0-9]{64})(?:;|$)/)?.[1];
+      if(anonWorkspace&&anonWorkspace!==accountWorkspace){
+        try{await mergeWorkspaceIntoAccount(env,anonWorkspace,accountWorkspace);}catch(error){console.error('Workspace merge failed',error);}
+      }
       const token=tokenHex(), expires=new Date(Date.now()+2592000000).toISOString();
       await env.DB.prepare("INSERT INTO p2p_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,accountId,expires).run();
-      return reply({ok:true,email},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000"});
+      return reply({ok:true,email,workspace_id:accountWorkspace},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000"});
     };
 
     if(action==="signup"){
@@ -122,11 +149,11 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
   const origin=url.origin;
   if(request.method!=='GET'&&request.headers.get('origin')&&request.headers.get('origin')!==origin) return reply({error:'Request origin is not allowed.'},403);
   const cookie=request.headers.get('cookie')||'';
-  let id=cookie.match(/(?:^|;\s*)p2p_workspace=([a-f0-9]{64})(?:;|$)/)?.[1];
+  const auth=await authUser(env,cookie);
+  let id=auth?.workspace_id||cookie.match(/(?:^|;\s*)p2p_workspace=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(url.pathname==='/api/session') {
     if(!id) id=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
-    const auth=await authUser(env,cookie);
-    return reply({ok:true,authenticated:Boolean(auth),email:auth?.email||null},200,{'Set-Cookie':`p2p_workspace=${id}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=31536000`});
+    return reply({ok:true,authenticated:Boolean(auth),email:auth?.email||null,workspace_id:id},200,{'Set-Cookie':`p2p_workspace=${id}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000`});
   }
   if(url.pathname==='/api/health') return reply({ok:true,version:'private-workspaces-1'});
   if(!id) return reply({error:'Please reopen the app to start your private workspace.'},401);
