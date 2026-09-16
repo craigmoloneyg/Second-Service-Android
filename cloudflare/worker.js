@@ -120,6 +120,14 @@ var worker_default = {
     return env.ASSETS.fetch(request);
   }
 };
+function arrayBufferToBase64(buffer){
+  const bytes=new Uint8Array(buffer);
+  let binary='';
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  return btoa(binary);
+}
+__name(arrayBufferToBase64, "arrayBufferToBase64");
 async function extractInvoice(request, env) {
   if (!env.OPENAI_API_KEY) return json({ error: "OpenAI API key has not been added to Cloudflare yet." }, 503);
   let contentType = (request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
@@ -137,22 +145,29 @@ async function extractInvoice(request, env) {
   filename = filename.replace(/[^\w.\- ()]/g, "_").slice(0, 120) || "invoice";
   let fileId = null;
   try {
-    const form = new FormData();
-    form.append("purpose", "user_data");
-    form.append("file", new Blob([body], { type: contentType }), filename);
-    const upload = await fetch(`${OPENAI_BASE}/files`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
-      body: form
-    });
-    const uploadJson = await upload.json();
-    if (!upload.ok) throw new Error(openAIError(uploadJson, "Could not upload invoice to AI."));
-    fileId = uploadJson.id;
+    let invoiceInput;
+    if(contentType.startsWith("image/")){
+      const dataUrl="data:"+contentType+";base64,"+arrayBufferToBase64(body);
+      invoiceInput={ type:"input_image", image_url:dataUrl, detail:"high" };
+    } else {
+      const form = new FormData();
+      form.append("purpose", "user_data");
+      form.append("file", new Blob([body], { type: contentType }), filename);
+      const upload = await fetch(`${OPENAI_BASE}/files`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
+        body: form
+      });
+      const uploadJson = await upload.json();
+      if (!upload.ok) throw new Error(openAIError(uploadJson, "Could not upload invoice to AI."));
+      fileId = uploadJson.id;
+      invoiceInput={ type:"input_file", file_id:fileId };
+    }
     const payload = {
       model: env.OPENAI_MODEL || "gpt-5.6-luna",
       instructions: "You extract accounting-grade commercial data from hospitality supplier invoices. Read every page and every invoice line. Return only facts supported by the document. Preserve product descriptions, pack sizes, quantities, units, unit prices, line totals, subtotal, tax and invoice total exactly as printed. Do not silently infer missing quantities or prices. Treat credits and printed negative lines as negative values. Do not merge separate product lines. Use null where a value cannot be supported. Flag uncertainty in missing_or_ambiguous. Do not recommend staffing, supplier, menu, pricing or operational actions.",
       input: [{ role: "user", content: [
-        { type: "input_file", file_id: fileId },
+        invoiceInput,
         { type: "input_text", text: "Extract this supplier invoice into the required structured schema." }
       ] }],
       text: { format: { type: "json_schema", name: "hospitality_invoice", strict: true, schema: invoiceSchema } },
