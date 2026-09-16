@@ -49,20 +49,8 @@ function calculateEstimateHealth(x){
 }
 async function ensureAuthTables(env){
   if(!env.DB) return;
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_accounts (id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT,password_salt TEXT,workspace_id TEXT,created_at TEXT)").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS p2p_sessions (token TEXT PRIMARY KEY,account_id TEXT NOT NULL,expires_at TEXT NOT NULL)").run();
-  const accountCols=(await env.DB.prepare("PRAGMA table_info(p2p_accounts)").all()).results||[];
-  const names=new Set(accountCols.map(x=>x.name));
-  const additions=[
-    ['password_hash','TEXT'],['password_salt','TEXT'],['workspace_id','TEXT'],['created_at','TEXT']
-  ];
-  for(const [name,type] of additions){
-    if(!names.has(name)) await env.DB.prepare(`ALTER TABLE p2p_accounts ADD COLUMN ${name} ${type}`).run();
-  }
-  const sessionCols=(await env.DB.prepare("PRAGMA table_info(p2p_sessions)").all()).results||[];
-  const sessionNames=new Set(sessionCols.map(x=>x.name));
-  if(!sessionNames.has('account_id')) await env.DB.prepare("ALTER TABLE p2p_sessions ADD COLUMN account_id TEXT").run();
-  if(!sessionNames.has('expires_at')) await env.DB.prepare("ALTER TABLE p2p_sessions ADD COLUMN expires_at TEXT").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS garnish_accounts (id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL,password_salt TEXT NOT NULL,workspace_id TEXT UNIQUE NOT NULL,created_at TEXT NOT NULL)").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS garnish_sessions (token TEXT PRIMARY KEY,account_id TEXT NOT NULL,expires_at TEXT NOT NULL)").run();
 }
 const tokenHex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2,"0")).join("");
 const b64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
@@ -70,7 +58,7 @@ async function hashPassword(password,salt){ const key=await crypto.subtle.import
 async function authUser(env,cookie){
   const token=cookie.match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(!token||!env.DB) return null;
-  const row=await env.DB.prepare("SELECT a.id,a.email,a.workspace_id,s.expires_at FROM p2p_sessions s JOIN p2p_accounts a ON a.id=s.account_id WHERE s.token=?").bind(token).first();
+  const row=await env.DB.prepare("SELECT a.id,a.email,a.workspace_id,s.expires_at FROM garnish_sessions s JOIN garnish_accounts a ON a.id=s.account_id WHERE s.token=?").bind(token).first();
   if(!row||!row.expires_at||Date.parse(row.expires_at)<=Date.now()) return null;
   return row;
 }
@@ -104,21 +92,21 @@ async function authApi(request,env,action){
     if(password.length<10||password.length>200) return reply({error:"Use a password between 10 and 200 characters."},400);
 
     const issueSession=async(accountId)=>{
-      const account=await env.DB.prepare("SELECT workspace_id FROM p2p_accounts WHERE id=?").bind(accountId).first();
+      const account=await env.DB.prepare("SELECT workspace_id FROM garnish_accounts WHERE id=?").bind(accountId).first();
       const accountWorkspace=account?.workspace_id||tokenHex();
-      if(!account?.workspace_id)await env.DB.prepare("UPDATE p2p_accounts SET workspace_id=? WHERE id=?").bind(accountWorkspace,accountId).run();
+      if(!account?.workspace_id)await env.DB.prepare("UPDATE garnish_accounts SET workspace_id=? WHERE id=?").bind(accountWorkspace,accountId).run();
       const cookie=request.headers.get('cookie')||'';
       const anonWorkspace=cookie.match(/(?:^|;\s*)p2p_workspace=([a-f0-9]{64})(?:;|$)/)?.[1];
       if(anonWorkspace&&anonWorkspace!==accountWorkspace){
         try{await mergeWorkspaceIntoAccount(env,anonWorkspace,accountWorkspace);}catch(error){console.error('Workspace merge failed',error);}
       }
       const token=tokenHex(), expires=new Date(Date.now()+2592000000).toISOString();
-      await env.DB.prepare("INSERT INTO p2p_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,accountId,expires).run();
+      await env.DB.prepare("INSERT INTO garnish_sessions (token,account_id,expires_at) VALUES (?,?,?)").bind(token,accountId,expires).run();
       return reply({ok:true,email,workspace_id:accountWorkspace},200,{"Set-Cookie":"p2p_auth="+token+"; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000"});
     };
 
     if(action==="signup"){
-      const existing=await env.DB.prepare("SELECT * FROM p2p_accounts WHERE lower(email)=?").bind(email).first();
+      const existing=await env.DB.prepare("SELECT * FROM garnish_accounts WHERE lower(email)=?").bind(email).first();
       if(existing){
         if(existing.password_hash&&existing.password_salt){
           const match=(await hashPassword(password,existing.password_salt))===existing.password_hash;
@@ -126,15 +114,15 @@ async function authApi(request,env,action){
           return reply({error:"That email already exists. Use Sign in with the password used when the account was created."},409);
         }
         const salt=tokenHex(), hash=await hashPassword(password,salt), workspaceId=existing.workspace_id||tokenHex(), now=existing.created_at||new Date().toISOString();
-        await env.DB.prepare("UPDATE p2p_accounts SET password_hash=?,password_salt=?,workspace_id=?,created_at=? WHERE id=?").bind(hash,salt,workspaceId,now,existing.id).run();
+        await env.DB.prepare("UPDATE garnish_accounts SET password_hash=?,password_salt=?,workspace_id=?,created_at=? WHERE id=?").bind(hash,salt,workspaceId,now,existing.id).run();
         return issueSession(existing.id);
       }
       const id=tokenHex(), salt=tokenHex(), workspaceId=tokenHex(), hash=await hashPassword(password,salt), now=new Date().toISOString();
-      await env.DB.prepare("INSERT INTO p2p_accounts (id,email,password_hash,password_salt,workspace_id,created_at) VALUES (?,?,?,?,?,?)").bind(id,email,hash,salt,workspaceId,now).run();
+      await env.DB.prepare("INSERT INTO garnish_accounts (id,email,password_hash,password_salt,workspace_id,created_at) VALUES (?,?,?,?,?,?)").bind(id,email,hash,salt,workspaceId,now).run();
       return issueSession(id);
     }
 
-    const account=await env.DB.prepare("SELECT * FROM p2p_accounts WHERE lower(email)=?").bind(email).first();
+    const account=await env.DB.prepare("SELECT * FROM garnish_accounts WHERE lower(email)=?").bind(email).first();
     if(!account||!account.password_hash||!account.password_salt) return reply({error:"Email or password is incorrect."},401);
     const match=(await hashPassword(password,account.password_salt))===account.password_hash;
     if(!match) return reply({error:"Email or password is incorrect."},401);
