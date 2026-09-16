@@ -85,6 +85,84 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
   if(!id) return reply({error:'Please reopen the app to start your private workspace.'},401);
   try {
     const record=await workspace(env,id), data=record.data;
+    if(url.pathname==='/api/profit-recovery'&&request.method==='GET') {
+      let square=null;
+      try {
+        const row=await env.DB.prepare('SELECT snapshot,last_sync_at,environment FROM p2p_square_connections WHERE workspace_id=?').bind(id).first();
+        if(row?.snapshot) square={...JSON.parse(row.snapshot),last_sync_at:row.last_sync_at,environment:row.environment};
+      } catch {}
+      const now=Date.now(), cutoff=now-30*86400000;
+      const invoices=(data.invoices||[]);
+      const invoice30=invoices.filter(inv=>{const t=Date.parse(inv.document_date||'');return Number.isFinite(t)&&t>=cutoff;});
+      const invoiceSpend30=invoice30.reduce((s,inv)=>s+(Number(inv.total)||0),0);
+      const allInvoiceSpend=invoices.reduce((s,inv)=>s+(Number(inv.total)||0),0);
+
+      const priceSeries=new Map();
+      for(const inv of invoices){
+        const ts=Date.parse(inv.document_date||'')||0;
+        for(const item of inv.line_items||[]){
+          if(!item.description||item.unit_price==null) continue;
+          const key=String(item.description).trim().toLowerCase();
+          if(!priceSeries.has(key)) priceSeries.set(key,[]);
+          priceSeries.get(key).push({name:item.description,supplier:inv.supplier_or_source||'',price:Number(item.unit_price),date:inv.document_date||'',ts});
+        }
+      }
+      const supplierMoves=[];
+      for(const points of priceSeries.values()){
+        const clean=points.filter(p=>Number.isFinite(p.price)).sort((a,b)=>a.ts-b.ts);
+        if(clean.length<2) continue;
+        const first=clean[0],last=clean[clean.length-1];
+        if(first.price===0) continue;
+        const pct=(last.price-first.price)*100/first.price;
+        if(Math.abs(pct)<0.01) continue;
+        supplierMoves.push({name:last.name,supplier:last.supplier,from:first.price,to:last.price,change_pct:pct,first_date:first.date,last_date:last.date});
+      }
+      supplierMoves.sort((a,b)=>Math.abs(b.change_pct)-Math.abs(a.change_pct));
+
+      const sales=square?.top_items||[];
+      const mapped=sales.filter(x=>x.recipe_id&&x.total_food_cost!=null);
+      const mappedSales=mapped.reduce((s,x)=>s+(Number(x.net_sales_cents)||0)/100,0);
+      const mappedCost=mapped.reduce((s,x)=>s+(Number(x.total_food_cost)||0),0);
+      const mappedContribution=mappedSales-mappedCost;
+      const mappedFoodCostPct=mappedSales>0?mappedCost*100/mappedSales:null;
+      const targetPct=30;
+      const leaks=mapped.map(x=>{
+        const revenue=(Number(x.net_sales_cents)||0)/100,cost=Number(x.total_food_cost)||0;
+        const excess=Math.max(0,cost-revenue*targetPct/100);
+        return {
+          name:x.name,recipe_name:x.recipe_name,quantity:Number(x.quantity)||0,revenue,food_cost:cost,
+          food_cost_pct:revenue>0?cost*100/revenue:null,contribution:revenue-cost,recoverable_to_30pct:excess
+        };
+      }).filter(x=>x.recoverable_to_30pct>0).sort((a,b)=>b.recoverable_to_30pct-a.recoverable_to_30pct);
+      const recoverable=leaks.reduce((s,x)=>s+x.recoverable_to_30pct,0);
+      const totalSales=(Number(square?.net_sales_30d_cents)||0)/100;
+      const mappedShare=totalSales>0?mappedSales*100/totalSales:0;
+      const unmappedSales=Math.max(0,totalSales-mappedSales);
+      const orders=Number(square?.orders_30d)||0;
+      return reply({
+        period_days:30,
+        square_connected:Boolean(square),
+        square_last_sync_at:square?.last_sync_at||null,
+        revenue_30d:totalSales,
+        orders_30d:orders,
+        average_order_value:orders?totalSales/orders:null,
+        invoice_spend_30d:invoiceSpend30,
+        invoice_count_30d:invoice30.length,
+        invoice_spend_all_time:allInvoiceSpend,
+        invoice_count_all_time:invoices.length,
+        mapped_sales_30d:mappedSales,
+        mapped_sales_share_pct:mappedShare,
+        unmapped_sales_30d:unmappedSales,
+        estimated_food_cost_30d:mappedCost,
+        estimated_food_cost_pct:mappedFoodCostPct,
+        contribution_30d:mappedContribution,
+        recoverable_to_30pct_30d:recoverable,
+        target_food_cost_pct:targetPct,
+        leaks:leaks.slice(0,12),
+        supplier_moves:supplierMoves.slice(0,12),
+        top_items:sales.slice(0,12).map(x=>({name:x.name,quantity:x.quantity,net_sales:(Number(x.net_sales_cents)||0)/100,food_cost_pct:x.actual_food_cost_pct,contribution:x.contribution,recipe_name:x.recipe_name||null}))
+      });
+    }
     if(url.pathname==='/api/ingredients'&&request.method==='GET') return reply({ingredients:data.ingredients});
     if(url.pathname==='/api/recipes'&&request.method==='GET') return reply({recipes:data.recipes.map(r=>costRecipe(r,data.ingredients))});
     if(url.pathname==='/api/purchasing/alerts') return reply({alerts:[]});
