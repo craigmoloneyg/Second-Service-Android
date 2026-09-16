@@ -17,21 +17,21 @@ function add(){
     const host=document.querySelector('main')||document.body,s=document.createElement('section');
     s.id='commercial-settings';s.className='card';s.dataset.p2pPage='workspace';s.style.marginTop='14px';
     s.innerHTML=`
-      <div class="card-head"><div><div class="kicker">Membership & integrations</div><h2>Price 2 Plate account</h2><div class="muted">14-day free trial. No card required. Cancel anytime.</div></div><span class="pill blue" id="planBadge">Sign in</span></div>
+      <div class="card-head"><div><div class="kicker">Membership & integrations</div><h2>Garnish account</h2><div class="muted">14-day free trial. No card required. Cancel anytime.</div></div><span class="pill blue" id="planBadge">Sign in</span></div>
       <div id="planBox" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
         <div class="card"><h3>Regular</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$99<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Invoice AI, live ingredient and recipe costing, Square, profit dashboard, purchasing alerts and AI Analyst.</div><button class="btn primary" id="regularBtn" style="margin-top:12px">Choose Regular</button></div>
         <div class="card"><h3>Gold</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$249<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Everything in Regular plus enhanced AI and live consultant messaging with up to 4 new cases each month.</div><button class="btn primary" id="goldBtn" style="margin-top:12px">Choose Gold</button></div>
       </div>
 
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
-        <div class="card-head"><div><h2>MYOB</h2><div class="muted">Connect live when MYOB approves the app, or import MYOB exports now for a full Price 2 Plate test.</div></div><span class="pill blue" id="myobBadge">Checking…</span></div>
+        <div class="card-head"><div><h2>MYOB</h2><div class="muted">Connect live when MYOB approves the app, or import MYOB exports now for a full Garnish test.</div></div><span class="pill blue" id="myobBadge">Checking…</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="myobConnect">Connect MYOB</button><button class="btn" id="myobSync" hidden>Sync P&L</button><button class="btn ghost" id="myobDisconnect" hidden>Disconnect</button></div>
         <div class="muted" id="myobMsg" style="margin-top:10px"></div>
 
         <div id="myobImportBridge" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
           <div class="kicker">Temporary test bridge</div>
           <h3 style="margin:5px 0 8px">Import MYOB exports</h3>
-          <div class="muted" style="margin-bottom:10px">Export CSV or JSON from MYOB and load it here. Imported accounting data is supplied to the Price 2 Plate AI workers alongside Square, invoices and recipes.</div>
+          <div class="muted" style="margin-bottom:10px">Export CSV or JSON from MYOB and load it here. Imported accounting data is supplied to the Garnish AI workers alongside Square, invoices and recipes.</div>
           <div style="display:grid;grid-template-columns:minmax(150px,.6fr) minmax(220px,1fr) auto;gap:8px">
             <select id="myobImportKind" style="${fieldStyle()}"><option value="profit_and_loss">Profit & Loss</option><option value="purchases">Purchases</option><option value="inventory">Inventory</option><option value="general_ledger">General Ledger</option><option value="other">Other MYOB export</option></select>
             <input id="myobImportFile" type="file" accept=".csv,.json,.txt,text/csv,application/json,text/plain" style="${fieldStyle()}">
@@ -59,7 +59,7 @@ function add(){
     s.id='live-consultant';s.className='card';s.dataset.p2pPage='consultant';s.style.marginTop='14px';
     s.innerHTML=`
       <div class="card-head"><div><div class="kicker">Human support</div><h2>Live consultant</h2><div class="muted">A persistent message thread with a real hospitality consultant. This is separate from the AI Analyst.</div></div><span class="pill blue" id="consultantBadge">Checking access…</span></div>
-      <div id="consultantLocked" class="muted">Sign in to your Price 2 Plate account to open consultant messaging.</div>
+      <div id="consultantLocked" class="muted">Sign in to your Garnish account to open consultant messaging.</div>
       <div id="consultantApp" hidden>
         <div style="display:grid;grid-template-columns:minmax(220px,.35fr) minmax(0,1fr);gap:14px">
           <div>
