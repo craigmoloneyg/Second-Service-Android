@@ -40,6 +40,9 @@ function wireAccount(){
   const panel=$('account-panel'),btn=$('accountBtn'),form=$('account-form'),toggle=$('account-toggle'),title=$('account-title'),submit=$('account-submit'),msg=$('account-message');
   if(!panel||!btn||!form)return;
   let mode='signin';
+  const emailField=$('account-email'),passwordField=$('account-password');
+  if(emailField){emailField.value='';emailField.setAttribute('autocomplete','off');}
+  if(passwordField){passwordField.value='';passwordField.setAttribute('autocomplete','new-password');}
 
   function setMode(next){
     mode=next==='signup'?'signup':'signin';
@@ -51,9 +54,13 @@ function wireAccount(){
   }
   function openAccount(next='signin'){
     setMode(next);
+    const email=$('account-email'),pass=$('account-password');
+    if(email){email.value='';email.setAttribute('autocomplete','off');}
+    if(pass){pass.value='';pass.setAttribute('autocomplete','new-password');}
+    if(msg)msg.textContent='';
     go('workspace');
     panel.hidden=false;
-    setTimeout(()=>{panel.scrollIntoView({behavior:'smooth',block:'start'});$('account-email')?.focus();},50);
+    setTimeout(()=>{panel.scrollIntoView({behavior:'smooth',block:'start'});email?.focus();},50);
   }
   window.GARNISH_OPEN_ACCOUNT=openAccount;
 
