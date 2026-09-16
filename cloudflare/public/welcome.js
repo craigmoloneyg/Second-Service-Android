@@ -60,7 +60,7 @@
   document.head.append(style);
   const bar = document.createElement('header');
   bar.className = 'p2p-bar';
-  bar.innerHTML = `<div class="p2p-brand"><svg class="p2p-mark" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="#254b37" stroke-width="2"/><circle cx="24" cy="24" r="13" fill="none" stroke="#52735f" stroke-width="1.5"/><path d="M17 29l7-10 7 10M20 26h8" fill="none" stroke="#254b37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Garnish</div><nav class="p2p-menu" aria-label="Workspace"><button data-view="home">Home</button><button data-view="invoices">Invoices</button><button data-view="menu">Menu costing</button><button data-view="dashboard">Dashboard</button></nav>`;
+  bar.innerHTML = `<div class="p2p-brand"><img src="/garnish-logo.svg" alt="Garnish Hospitality Intelligence" style="display:block;width:230px;max-width:42vw;height:auto"></div><nav class="p2p-menu" aria-label="Workspace"><button data-view="home">Home</button><button data-view="invoices">Invoices</button><button data-view="menu">Menu costing</button><button data-view="dashboard">Dashboard</button></nav>`;
   const home = document.createElement('main');
   home.className = 'p2p-home';
   home.id = 'p2p-home';
