@@ -11,7 +11,7 @@ async function authTables(env){
 }
 async function pwHash(password,salt){
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
-  return b64(await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:120000,hash:'SHA-256'},key,256));
+  return b64(await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:15000,hash:'SHA-256'},key,256));
 }
 async function issueSession(env,account,email){
   const token=hex(32),expires=new Date(Date.now()+2592000000).toISOString();
@@ -52,7 +52,7 @@ async function directAuth(request,env,action){
     return issueSession(env,account,email);
   }catch(err){
     console.error('Direct Garnish auth error',err?.stack||err?.message||err);
-    return authJson({error:'Garnish account service could not save this account.'},503);
+    return authJson({error:'Garnish account setup failed: '+String(err?.message||'unknown error').slice(0,160)},503);
   }
 }
 async function directSession(request,env){
