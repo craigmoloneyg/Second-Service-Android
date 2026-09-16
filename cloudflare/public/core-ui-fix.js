@@ -39,25 +39,58 @@ function replaceButton(id){
 function wireAccount(){
   const panel=$('account-panel'),btn=$('accountBtn'),form=$('account-form'),toggle=$('account-toggle'),title=$('account-title'),submit=$('account-submit'),msg=$('account-message');
   if(!panel||!btn||!form)return;
-  btn.onclick=e=>{e.preventDefault();go('workspace');panel.hidden=false;setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'start'}),30);};
-  let mode='signup';
-  if(submit) submit.textContent='Create account & start 14-day trial';
-  if(toggle) toggle.onclick=()=>{mode=mode==='signup'?'signin':'signup';if(title)title.textContent=mode==='signup'?'Create your account':'Sign in';if(submit)submit.textContent=mode==='signup'?'Create account & start 14-day trial':'Sign in';toggle.textContent=mode==='signup'?'Already have an account? Sign in':'Need an account? Start free trial';if(msg)msg.textContent='';};
+  let mode='signin';
+
+  function setMode(next){
+    mode=next==='signup'?'signup':'signin';
+    if(title)title.textContent=mode==='signup'?'Create your account':'Sign in';
+    if(submit)submit.textContent=mode==='signup'?'Create account & start 14-day trial':'Sign in';
+    if(toggle)toggle.textContent=mode==='signup'?'Already have an account? Sign in':'Need an account? Start free trial';
+    const pass=$('account-password');if(pass)pass.autocomplete=mode==='signup'?'new-password':'current-password';
+    if(msg)msg.textContent='';
+  }
+  function openAccount(next='signin'){
+    setMode(next);
+    go('workspace');
+    panel.hidden=false;
+    setTimeout(()=>{panel.scrollIntoView({behavior:'smooth',block:'start'});$('account-email')?.focus();},50);
+  }
+  window.GARNISH_OPEN_ACCOUNT=openAccount;
+
+  api('/api/session').then(s=>{
+    if(s.authenticated){btn.textContent='Account · '+s.email;btn.dataset.authenticated='1';}
+    else{btn.textContent='Sign in';delete btn.dataset.authenticated;}
+  }).catch(()=>{});
+
+  btn.onclick=async e=>{
+    e.preventDefault();
+    if(btn.dataset.authenticated){
+      try{await api('/api/auth/signout',{method:'POST'});}catch{}
+      location.reload();return;
+    }
+    openAccount('signin');
+  };
+
+  if(toggle)toggle.onclick=()=>setMode(mode==='signup'?'signin':'signup');
+
   form.onsubmit=async e=>{
     e.preventDefault();
     const email=$('account-email')?.value.trim(),password=$('account-password')?.value||'';
     if(msg)msg.textContent=mode==='signup'?'Creating account…':'Signing in…';
     if(submit)submit.disabled=true;
     try{
-      await api('/api/auth/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-      let trial='';
-      try{const b=await api('/api/billing/status');if(b.subscription?.status==='trial')trial=' Your 14-day trial is active.';}catch{}
-      if(msg)msg.textContent=(mode==='signup'?'Account created.':'Signed in.')+trial;
-      btn.textContent='Account';
-      setTimeout(()=>location.reload(),700);
-    }catch(err){if(msg)msg.textContent=err.message;}
-    finally{if(submit)submit.disabled=false;}
+      const result=await api('/api/auth/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+      if(msg)msg.textContent=mode==='signup'?'Account created. Starting your trial…':'Signed in.';
+      btn.textContent='Account · '+(result.email||email);
+      btn.dataset.authenticated='1';
+      setTimeout(()=>location.reload(),500);
+    }catch(err){
+      if(msg)msg.textContent=err.message;
+    }finally{
+      if(submit)submit.disabled=false;
+    }
   };
+  setMode('signin');
 }
 function wireInvoice(){
   const existing=$('analyseInvoiceBtn'); if(existing?.dataset?.batchReady)return;
