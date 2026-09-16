@@ -2,7 +2,14 @@
 const money=n=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(Number(n)||0);
 const pct=n=>n==null?'—':Number(n).toFixed(1)+'%';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function wireSortControls(){
+  const ps=document.getElementById('purchasingSortBy'),pd=document.getElementById('purchasingSortDir');
+  [ps,pd].forEach(el=>{if(el&&!el.dataset.sortReady){el.dataset.sortReady='1';el.addEventListener('change',load);}});
+}
+
 async function load(){
+  wireSortControls();
   let r,j;try{r=await fetch('/api/profit-recovery',{credentials:'same-origin',cache:'no-store'});j=await r.json();if(!r.ok)throw new Error(j.error||'Could not load profit data.');}catch(e){return;}
   const pr=document.getElementById('profit-recovery');
   if(pr){
@@ -29,7 +36,18 @@ async function load(){
   const supplier=[...document.querySelectorAll('.card')].find(x=>x.querySelector('h2')?.textContent.trim()==='Supplier intelligence');
   if(supplier){
     const tbody=supplier.querySelector('tbody'),pill=supplier.querySelector('.pill');
-    const products=j.supplier_products||[],moves=j.supplier_moves||[];
+    let products=(j.supplier_products||[]).slice(),moves=j.supplier_moves||[];
+    const sortBy=document.getElementById('purchasingSortBy')?.value||'name';
+    const sortDir=document.getElementById('purchasingSortDir')?.value||'asc';
+    products.sort((a,b)=>{
+      let av=a?.[sortBy],bv=b?.[sortBy];
+      if(['name','supplier','last_date'].includes(sortBy)){
+        av=String(av||'').toLowerCase();bv=String(bv||'').toLowerCase();
+        return sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+      }
+      av=Number(av);bv=Number(bv);if(!Number.isFinite(av))av=-Infinity;if(!Number.isFinite(bv))bv=-Infinity;
+      return sortDir==='asc'?av-bv:bv-av;
+    });
     if(pill)pill.textContent=products.length+' extracted items';
     if(tbody){
       tbody.innerHTML=products.slice(0,80).map(x=>{
