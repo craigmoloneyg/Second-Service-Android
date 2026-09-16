@@ -247,11 +247,67 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
       const body=await request.json(); const question=String(body.question||'').trim();
       if(!question||question.length>3000) return reply({error:'Enter a question of up to 3,000 characters.'},400);
       if(!env.OPENAI_API_KEY) return reply({error:'The analyst service needs its API key configured.'},503);
-      const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal:AbortSignal.timeout(55000),headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',instructions:'You are a restaurant operations analyst. Give practical improvements. Use only supplied workspace records as facts. Sales, labour, stock and savings are unknown unless supplied. If no data, explain what to collect and give clearly labelled general methods. Never invent prices, suppliers, savings or legal obligations. For labour discuss demand-aligned scheduling, preparation, workflow and service quality. Return plain text.',input:JSON.stringify({question,area:String(body.area||'profit'),ingredients:data.ingredients.slice(0,100),recipes:data.recipes.slice(0,30),invoice_count:data.invoices.length}),max_output_tokens:1800})});
+
+      let square=null;
+      try{
+        const row=await env.DB.prepare('SELECT snapshot,last_sync_at,environment FROM p2p_square_connections WHERE workspace_id=?').bind(id).first();
+        if(row?.snapshot) square={...JSON.parse(row.snapshot),last_sync_at:row.last_sync_at,environment:row.environment};
+      }catch{}
+
+      const recentInvoices=(data.invoices||[])
+        .slice()
+        .sort((a,b)=>(Date.parse(b.document_date||'')||0)-(Date.parse(a.document_date||'')||0))
+        .slice(0,75)
+        .map(inv=>({
+          supplier:inv.supplier_or_source||null,
+          invoice_number:inv.document_number||null,
+          invoice_date:inv.document_date||null,
+          subtotal:inv.subtotal??null,
+          tax:inv.tax??null,
+          total:inv.total??null,
+          line_items:(inv.line_items||[]).slice(0,120).map(x=>({
+            description:x.description||null,
+            quantity:x.quantity??null,
+            unit:x.unit||null,
+            unit_price:x.unit_price??null,
+            line_total:x.line_total??null,
+            category:x.category||null
+          }))
+        }));
+
+      const analystContext={
+        question,
+        area:String(body.area||'profit'),
+        invoice_count:(data.invoices||[]).length,
+        invoices:recentInvoices,
+        ingredients:(data.ingredients||[]).slice(0,300),
+        recipes:(data.recipes||[]).slice(0,100).map(r=>costRecipe(r,data.ingredients||[])),
+        square:square?{
+          environment:square.environment,
+          last_sync_at:square.last_sync_at,
+          orders_30d:square.orders_30d,
+          net_sales_30d_cents:square.net_sales_30d_cents,
+          locations:square.locations,
+          profitability:square.profitability,
+          top_items:(square.top_items||[]).slice(0,100)
+        }:null
+      };
+
+      const response=await fetch('https://api.openai.com/v1/responses',{
+        method:'POST',
+        signal:AbortSignal.timeout(55000),
+        headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:env.OPENAI_MODEL||'gpt-5.6-luna',
+          instructions:'You are the Price 2 Plate restaurant operations analyst. The supplied JSON is the source of truth and now includes invoice headers, invoice line items, ingredient costs, recipes and Square sales when available. Use the actual invoice and Square evidence in your answer. Cite concrete supplier names, products, prices, quantities, sales and margins from the supplied data when relevant. Distinguish measured facts from interpretation. Code calculates financial metrics; you interpret them. Never invent missing figures. If a requested figure is unavailable, say exactly which record is missing. Return concise plain text.',
+          input:JSON.stringify(analystContext),
+          max_output_tokens:2600
+        })
+      });
       let result; try {result=await response.json();}catch{return reply({error:'The analyst service returned an unreadable response. Please retry.'},502);}
       if(!response.ok) return reply({error:response.status===429?'The analyst service is at its usage limit. Please retry later.':'The analyst provider could not process this request. Check its model and API configuration.'},502);
       const answer=outputText(result);if(!answer) return reply({error:'The analyst returned no answer. Please try a shorter question.'},502);
-      return reply({advice:{summary:answer,opportunities:[],measurement:'Record a baseline and compare the same service period after making one change.'}});
+      return reply({advice:{summary:answer,opportunities:[],measurement:'Compare the same service period after each operational change.'},context:{invoice_count:(data.invoices||[]).length,square_connected:Boolean(square)}});
     }
     return reply({error:'This feature is not available yet.'},404);
   }catch(error){return reply({error:error instanceof SyntaxError?'The request could not be read. Please refresh and try again.':error.name==='TimeoutError'?'The analyst took too long. Please retry.':'The action could not be completed. Please retry; your existing records are unchanged.'},500);}
