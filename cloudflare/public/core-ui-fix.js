@@ -65,6 +65,7 @@ function wireAccount(){
   };
 }
 function wireInvoice(){
+  const existing=$('analyseInvoiceBtn'); if(existing?.dataset?.batchReady)return;
   const btn=replaceButton('analyseInvoiceBtn'); if(!btn)return;
   btn.type='button';
   btn.onclick=async()=>{
