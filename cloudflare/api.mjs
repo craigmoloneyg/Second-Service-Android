@@ -20,9 +20,9 @@ function costRecipe(recipe,ingredients) {
   const items=recipe.items.map(item=>{
     const ingredient=ingredients.find(i=>i.id===item.ingredient_id);
     if(!ingredient) throw new Error('Choose an ingredient from this workspace.');
-    const scale={kg:['g',1000],g:['g',1],l:['ml',1000],ml:['ml',1],each:['each',1]};
-    const conversion=item.unit===ingredient.base_unit?1:scale[item.unit]?.[0]===ingredient.base_unit?scale[item.unit][1]:null;
-    return {...ingredient,...item,cost:conversion===null?null:item.quantity*conversion*ingredient.base_unit_cost,conversion_ok:conversion!==null};
+    const gramCost=ingredient.base_unit==='g'&&Number.isFinite(Number(ingredient.base_unit_cost))?Number(ingredient.base_unit_cost):null;
+    const conversion=item.unit==='g'&&gramCost!=null?1:null;
+    return {...ingredient,...item,cost_per_gram:gramCost,cost:conversion===null?null:item.quantity*gramCost,conversion_ok:conversion!==null};
   });
   const complete=items.every(i=>i.cost!==null);
   const batch=complete?items.reduce((sum,i)=>sum+i.cost,0):null;
@@ -186,7 +186,7 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
       const rows=(data.inventory||[]).slice().sort((a,b)=>(Date.parse(b.last_received_at||'')||0)-(Date.parse(a.last_received_at||'')||0));
       return reply({inventory:rows});
     }
-    if(url.pathname==='/api/ingredients'&&request.method==='GET') return reply({ingredients:data.ingredients});
+    if(url.pathname==='/api/ingredients'&&request.method==='GET') return reply({ingredients:data.ingredients.map(i=>({...i,cost_per_gram:i.base_unit==='g'&&Number.isFinite(Number(i.base_unit_cost))?Number(i.base_unit_cost):null}))});
     if(url.pathname==='/api/recipes'&&request.method==='GET') return reply({recipes:data.recipes.map(r=>costRecipe(r,data.ingredients))});
     if(url.pathname==='/api/purchasing/alerts') return reply({alerts:[]});
     if(url.pathname==='/api/report'&&request.method==='GET') {
@@ -285,7 +285,7 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
       const body=await request.json();
       const recipe={id:Math.max(0,...data.recipes.map(r=>r.id))+1,name:String(body.name||'').trim(),selling_price:Number(body.selling_price),yield_portions:Number(body.yield_portions),items:body.items};
       if(!recipe.name||!Number.isFinite(recipe.selling_price)||recipe.selling_price<0||!Number.isFinite(recipe.yield_portions)||recipe.yield_portions<=0||!Array.isArray(recipe.items)||!recipe.items.length||recipe.items.some(i=>!Number.isFinite(Number(i.quantity))||Number(i.quantity)<=0)) return reply({error:'Check the dish name, price, yield and ingredient quantities.'},400);
-      recipe.items=recipe.items.map(i=>({...i,ingredient_id:Number(i.ingredient_id),quantity:Number(i.quantity)}));
+      recipe.items=recipe.items.map(i=>({...i,ingredient_id:Number(i.ingredient_id),quantity:Number(i.quantity),unit:'g'}));
       const costed=costRecipe(recipe,data.ingredients);data.recipes.push(recipe);await save(env,id,record);return reply({recipe:costed},201);
     }
     if(/^\/api\/recipes\/\d+$/.test(url.pathname)&&request.method==='DELETE') {data.recipes=data.recipes.filter(r=>r.id!==Number(url.pathname.split('/').pop()));await save(env,id,record);return reply({ok:true});}
