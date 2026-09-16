@@ -65,7 +65,8 @@ async function runBatch(){
       const i=next++;if(i>=selected.length)return;
       const file=selected[i],r=rows[i];r.label.textContent='Uploading and analysing…';
       try{
-        const ext=file.name.split('.').pop().toLowerCase(),mime=types[ext]||file.type;
+        const ext=file.name.split('.').pop().toLowerCase();
+        const mime=ext==='png'?'image/png':(['jpg','jpeg','jpe','jfif','pjpeg','pjp'].includes(ext)?'image/jpeg':ext==='webp'?'image/webp':types[ext]||file.type);
         const isImage=(file.type||'').toLowerCase().startsWith('image/');
         if((!types[ext]&&!isImage)||!file.size)throw new Error('File must be a non-empty PDF or image file.');
         const res=await fetch('/api/invoice/extract',{method:'POST',headers:{'Content-Type':mime,'X-Filename':encodeURIComponent(file.name)},body:file});
@@ -101,17 +102,33 @@ async function loadInventory(){
 }
 function setupCamera(){
   const btn=$('invoiceCameraBtn'),cam=$('invoiceCameraFile');
-  if(!btn||!cam||btn.dataset.cameraReady)return;
-  btn.dataset.cameraReady='1';
-  btn.addEventListener('click',e=>{e.preventDefault();cam.click();});
-  cam.addEventListener('change',async()=>{
-    const captured=Array.from(cam.files||[]);
-    if(!captured.length)return;
-    selectedOverride=captured;
-    update();
-    await runBatch();
-    cam.value='';
-  });
+  const imageBtn=$('invoiceImageBtn'),imageInput=$('invoiceImageFile');
+
+  if(btn&&cam&&!btn.dataset.cameraReady){
+    btn.dataset.cameraReady='1';
+    btn.addEventListener('click',e=>{e.preventDefault();cam.click();});
+    cam.addEventListener('change',async()=>{
+      const captured=Array.from(cam.files||[]);
+      if(!captured.length)return;
+      selectedOverride=captured;
+      update();
+      await runBatch();
+      cam.value='';
+    });
+  }
+
+  if(imageBtn&&imageInput&&!imageBtn.dataset.imageReady){
+    imageBtn.dataset.imageReady='1';
+    imageBtn.addEventListener('click',e=>{e.preventDefault();imageInput.click();});
+    imageInput.addEventListener('change',async()=>{
+      const chosen=Array.from(imageInput.files||[]);
+      if(!chosen.length)return;
+      selectedOverride=chosen;
+      update();
+      await runBatch();
+      imageInput.value='';
+    });
+  }
 }
 window.addEventListener('p2p-inventory-changed',loadInventory);
 window.p2pLoadInventory=loadInventory;
