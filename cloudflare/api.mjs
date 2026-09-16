@@ -302,6 +302,15 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
         if(row?.snapshot) square={...JSON.parse(row.snapshot),last_sync_at:row.last_sync_at,environment:row.environment};
       }catch{}
 
+      let myob=null;
+      try{
+        const auth=await authUser(env,cookie);
+        if(auth?.id){
+          const row=await env.DB.prepare('SELECT business_id,last_sync_at,snapshot FROM p2p_myob_connections WHERE account_id=?').bind(auth.id).first();
+          if(row?.snapshot) myob={business_id:row.business_id,last_sync_at:row.last_sync_at,...JSON.parse(row.snapshot)};
+        }
+      }catch{}
+
       const recentInvoices=(data.invoices||[])
         .slice()
         .sort((a,b)=>(Date.parse(b.document_date||'')||0)-(Date.parse(a.document_date||'')||0))
@@ -338,6 +347,12 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
           locations:square.locations,
           profitability:square.profitability,
           top_items:(square.top_items||[]).slice(0,100)
+        }:null,
+        myob:myob?{
+          business_id:myob.business_id,
+          last_sync_at:myob.last_sync_at,
+          period:myob.period||null,
+          profit_and_loss:myob.profit_and_loss||null
         }:null
       };
 
@@ -347,7 +362,7 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
         headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
         body:JSON.stringify({
           model:env.OPENAI_MODEL||'gpt-5.6-luna',
-          instructions:'You are the Price 2 Plate restaurant operations analyst. The supplied JSON is the source of truth and now includes invoice headers, invoice line items, ingredient costs, recipes and Square sales when available. Use the actual invoice and Square evidence in your answer. Cite concrete supplier names, products, prices, quantities, sales and margins from the supplied data when relevant. Distinguish measured facts from interpretation. Code calculates financial metrics; you interpret them. Never invent missing figures. If a requested figure is unavailable, say exactly which record is missing. Return concise plain text.',
+          instructions:'You are the Price 2 Plate restaurant operations analyst. The supplied JSON is the source of truth and includes invoice headers, invoice line items, ingredient costs, recipes, Square sales and synced MYOB accounting evidence when available. Use the actual invoice, Square and MYOB evidence in your answer. Cite concrete supplier names, products, prices, quantities, sales and margins from the supplied data when relevant. Distinguish measured facts from interpretation. Code calculates financial metrics; you interpret them. Never invent missing figures. If a requested figure is unavailable, say exactly which record is missing. Return concise plain text.',
           input:JSON.stringify(analystContext),
           max_output_tokens:2600
         })
@@ -355,7 +370,7 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
       let result; try {result=await response.json();}catch{return reply({error:'The analyst service returned an unreadable response. Please retry.'},502);}
       if(!response.ok) return reply({error:response.status===429?'The analyst service is at its usage limit. Please retry later.':'The analyst provider could not process this request. Check its model and API configuration.'},502);
       const answer=outputText(result);if(!answer) return reply({error:'The analyst returned no answer. Please try a shorter question.'},502);
-      return reply({advice:{summary:answer,opportunities:[],measurement:'Compare the same service period after each operational change.'},context:{invoice_count:(data.invoices||[]).length,square_connected:Boolean(square)}});
+      return reply({advice:{summary:answer,opportunities:[],measurement:'Compare the same service period after each operational change.'},context:{invoice_count:(data.invoices||[]).length,square_connected:Boolean(square),myob_connected:Boolean(myob)}});
     }
     return reply({error:'This feature is not available yet.'},404);
   }catch(error){return reply({error:error instanceof SyntaxError?'The request could not be read. Please refresh and try again.':error.name==='TimeoutError'?'The analyst took too long. Please retry.':'The action could not be completed. Please retry; your existing records are unchanged.'},500);}
