@@ -14,6 +14,10 @@ async function tables(env){
  await env.DB.prepare('CREATE TABLE IF NOT EXISTS p2p_myob_imports (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,kind TEXT NOT NULL,filename TEXT NOT NULL,imported_at TEXT NOT NULL,snapshot TEXT NOT NULL)').run();
 }
 async function user(request,env){const c=request.headers.get('cookie')||'',t=c.match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];if(!t)return null;return env.DB.prepare('SELECT a.id,a.email,a.workspace_id FROM p2p_sessions s JOIN p2p_accounts a ON a.id=s.account_id WHERE s.token=? AND s.expires_at>?').bind(t,new Date().toISOString()).first();}
+function consultantAdmin(env,u){
+ const raw=String(env.CONSULTANT_ADMIN_EMAILS||'').toLowerCase().split(',').map(x=>x.trim()).filter(Boolean);
+ return Boolean(u?.email&&raw.includes(String(u.email).toLowerCase()));
+}
 async function sub(env,u){let r=await env.DB.prepare('SELECT * FROM p2p_subscriptions WHERE account_id=?').bind(u.id).first();if(!r){const end=new Date(Date.now()+14*86400000).toISOString(),now=new Date().toISOString();await env.DB.prepare('INSERT INTO p2p_subscriptions(account_id,plan,status,trial_ends_at,updated_at) VALUES (?,\'trial\',\'trial\',?,?)').bind(u.id,end,now).run();r=await env.DB.prepare('SELECT * FROM p2p_subscriptions WHERE account_id=?').bind(u.id).first();}if(r.status==='trial'&&Date.parse(r.trial_ends_at)<=Date.now()){await env.DB.prepare('UPDATE p2p_subscriptions SET status=\'expired\',updated_at=? WHERE account_id=?').bind(new Date().toISOString(),u.id).run();r.status='expired';}return r;}
 function ent(r){const trial=r.status==='trial'&&Date.parse(r.trial_ends_at)>Date.now(),active=r.status==='active'||trial,gold=active&&r.plan==='gold';return{active,gold,plan:trial?'trial':r.plan,status:r.status,trial_ends_at:r.trial_ends_at,features:{square:active,myob:active,invoice_ai:active,standard_ai:active,enhanced_ai:gold,consultant:gold||trial}};}
 async function cryptKey(env){const secret=env.P2P_TOKEN_ENCRYPTION_KEY||env.MYOB_CLIENT_SECRET;if(!secret)throw new Error('Token encryption secret is not configured.');const b=await crypto.subtle.digest('SHA-256',enc.encode('p2p-integrations:'+secret));return crypto.subtle.importKey('raw',b,{name:'AES-GCM'},false,['encrypt','decrypt']);}
@@ -51,6 +55,43 @@ export async function handleCommercial(request,env){const url=new URL(request.ur
  const u=await user(request,env);if(!u)return json({error:'Sign in to your Price 2 Plate account first.'},401);const sr=await sub(env,u),e=ent(sr);
  if(url.pathname==='/api/billing/status'&&request.method==='GET')return json({subscription:e,prices:{regular:{aud_month:99},gold:{aud_month:249}},trial_days:14});
  if(url.pathname==='/api/billing/checkout'&&request.method==='POST'){const b=await request.json(),plan=b.plan==='gold'?'gold':'regular',variation=plan==='gold'?env.SQUARE_GOLD_PLAN_VARIATION_ID:env.SQUARE_REGULAR_PLAN_VARIATION_ID,amount=plan==='gold'?24900:9900;if(!env.SQUARE_BILLING_ACCESS_TOKEN||!variation)return json({error:'Subscription billing is awaiting its Square billing configuration.'},503);const r=await fetch('https://connect.squareup.com/v2/online-checkout/payment-links',{method:'POST',headers:{Authorization:'Bearer '+env.SQUARE_BILLING_ACCESS_TOKEN,'Square-Version':VERSION,'Content-Type':'application/json'},body:JSON.stringify({idempotency_key:crypto.randomUUID(),quick_pay:{name:'Price 2 Plate '+(plan==='gold'?'Gold':'Regular'),price_money:{amount,currency:'AUD'},location_id:env.SQUARE_BILLING_LOCATION_ID},checkout_options:{subscription_plan_id:variation,redirect_url:url.origin+'/#/workspace'}})}),j=await r.json();if(!r.ok)return json({error:j.errors?.[0]?.detail||'Could not open Square subscription checkout.'},502);return json({url:j.payment_link?.url,plan});}
+ if(url.pathname==='/api/consultant/admin/status'&&request.method==='GET'){
+  return json({admin:consultantAdmin(env,u)});
+ }
+ if(url.pathname==='/api/consultant/admin/threads'&&request.method==='GET'){
+  if(!consultantAdmin(env,u))return json({error:'Consultant admin access required.'},403);
+  const status=String(url.searchParams.get('status')||'all').toLowerCase();
+  const where=status==='all'?'':" WHERE r.status=?";
+  const q='SELECT r.id,r.account_id,r.workspace_id,r.subject,r.status,r.created_at,r.answered_at,a.email,(SELECT body FROM p2p_consultant_messages m WHERE m.request_id=r.id ORDER BY m.created_at DESC LIMIT 1) last_message,(SELECT created_at FROM p2p_consultant_messages m WHERE m.request_id=r.id ORDER BY m.created_at DESC LIMIT 1) last_message_at FROM p2p_consultant_requests r LEFT JOIN p2p_accounts a ON a.id=r.account_id'+where+' ORDER BY COALESCE(last_message_at,r.created_at) DESC LIMIT 100';
+  const result=status==='all'?await env.DB.prepare(q).all():await env.DB.prepare(q).bind(status).all();
+  return json({threads:result.results||[]});
+ }
+ if(url.pathname==='/api/consultant/admin/messages'&&request.method==='GET'){
+  if(!consultantAdmin(env,u))return json({error:'Consultant admin access required.'},403);
+  const requestId=String(url.searchParams.get('request_id')||'');
+  const thread=await env.DB.prepare('SELECT r.id,r.account_id,r.workspace_id,r.subject,r.status,r.created_at,r.answered_at,a.email FROM p2p_consultant_requests r LEFT JOIN p2p_accounts a ON a.id=r.account_id WHERE r.id=?').bind(requestId).first();
+  if(!thread)return json({error:'Conversation not found.'},404);
+  const {results=[]}=await env.DB.prepare('SELECT id,sender,body,created_at FROM p2p_consultant_messages WHERE request_id=? ORDER BY created_at ASC').bind(requestId).all();
+  return json({thread,messages:results});
+ }
+ if(url.pathname==='/api/consultant/admin/messages'&&request.method==='POST'){
+  if(!consultantAdmin(env,u))return json({error:'Consultant admin access required.'},403);
+  const b=await request.json(),requestId=String(b.request_id||''),body=String(b.body||'').trim();
+  if(!body||body.length>6000)return json({error:'Enter a reply up to 6,000 characters.'},400);
+  const thread=await env.DB.prepare('SELECT id,account_id FROM p2p_consultant_requests WHERE id=?').bind(requestId).first();
+  if(!thread)return json({error:'Conversation not found.'},404);
+  const now=new Date().toISOString(),id=crypto.randomUUID();
+  await env.DB.prepare('INSERT INTO p2p_consultant_messages(id,request_id,account_id,sender,body,created_at) VALUES(?,?,?,?,?,?)').bind(id,requestId,thread.account_id,'consultant',body,now).run();
+  await env.DB.prepare("UPDATE p2p_consultant_requests SET status='answered',answer=?,answered_at=? WHERE id=?").bind(body,now,requestId).run();
+  return json({ok:true,id,created_at:now},201);
+ }
+ if(url.pathname==='/api/consultant/admin/status'&&request.method==='POST'){
+  if(!consultantAdmin(env,u))return json({error:'Consultant admin access required.'},403);
+  const b=await request.json(),requestId=String(b.request_id||''),status=String(b.status||'').toLowerCase();
+  if(!['open','answered','closed'].includes(status))return json({error:'Invalid conversation status.'},400);
+  await env.DB.prepare('UPDATE p2p_consultant_requests SET status=? WHERE id=?').bind(status,requestId).run();
+  return json({ok:true,status});
+ }
  if(url.pathname==='/api/consultant/questions'&&request.method==='GET'){if(!e.features.consultant)return json({error:'Live consultant messaging is available on Gold.'},403);const {results=[]}=await env.DB.prepare('SELECT id,subject,question,status,answer,created_at,answered_at FROM p2p_consultant_requests WHERE account_id=? ORDER BY created_at DESC LIMIT 50').bind(u.id).all();return json({requests:results,monthly_limit:4});}
  if(url.pathname==='/api/consultant/questions'&&request.method==='POST'){if(!e.features.consultant)return json({error:'Live consultant messaging is available on Gold.'},403);const b=await request.json(),q=String(b.question||'').trim(),subject=String(b.subject||'Operational question').trim().slice(0,120),month=new Date().toISOString().slice(0,7),count=await env.DB.prepare("SELECT COUNT(*) n FROM p2p_consultant_requests WHERE account_id=? AND substr(created_at,1,7)=?").bind(u.id,month).first();if(Number(count?.n||0)>=4)return json({error:'Gold includes up to 4 new consultant cases per month.'},429);if(!q||q.length>6000)return json({error:'Enter a question up to 6,000 characters.'},400);const id=crypto.randomUUID(),now=new Date().toISOString();await env.DB.prepare('INSERT INTO p2p_consultant_requests(id,account_id,workspace_id,subject,question,status,created_at) VALUES(?,?,?,?,?,\'open\',?)').bind(id,u.id,u.workspace_id,subject,q,now).run();await env.DB.prepare('INSERT INTO p2p_consultant_messages(id,request_id,account_id,sender,body,created_at) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,u.id,'client',q,now).run();return json({ok:true,id,status:'open'},201);}
  if(url.pathname==='/api/consultant/messages'&&request.method==='GET'){
