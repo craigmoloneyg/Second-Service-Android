@@ -71,7 +71,63 @@ input::placeholder,textarea::placeholder{color:#799082!important}
 .garnish-home-pitch{margin:34px 0 0;background:#0B4B3A;border-radius:24px;padding:34px;color:#F2F3DF}
 .garnish-home-pitch h2{color:#F2F3DF!important;font-size:44px!important;max-width:860px}.garnish-home-pitch p{color:#DCE7CE;max-width:820px;line-height:1.7}
 @media(max-width:980px){.main{padding:22px!important}.garnish-sales-grid{grid-template-columns:1fr 1fr}.p2p-page-head h2{font-size:32px!important}}
-@media(max-width:640px){.garnish-sales-grid{grid-template-columns:1fr}.garnish-sales-underlay{padding:26px}.garnish-sales-underlay h3{font-size:34px!important}.p2p-page-head{padding:24px!important}.p2p-home h1{font-size:52px!important}}
+@media(max-width:640px){
+  html,body{overflow-x:hidden!important}
+  body{padding-top:104px!important}
+  .p2p-bar{height:auto!important;min-height:104px!important;padding:12px 16px!important;gap:8px!important;align-items:flex-start!important}
+  .p2p-brand{width:100%!important;min-width:0!important}
+  .p2p-brand img{width:176px!important;max-width:70vw!important}
+  .p2p-menu{width:100%!important;gap:4px!important;overflow-x:auto!important;padding-bottom:2px!important;justify-content:flex-start!important}
+  .p2p-menu button{flex:0 0 auto!important;padding:8px 10px!important;font-size:11px!important}
+  .p2p-home{padding:26px 16px 32px!important;width:100%!important}
+  .p2p-hero{grid-template-columns:1fr!important;gap:24px!important}
+  .p2p-home h1{font-size:46px!important;line-height:1!important;margin-bottom:18px!important}
+  .p2p-intro{font-size:16px!important;line-height:1.65!important;margin-bottom:22px!important}
+  .p2p-actions{display:grid!important;grid-template-columns:1fr!important;width:100%!important}
+  .p2p-actions button{width:100%!important}
+  .p2p-art{min-height:300px!important;margin-top:4px!important}
+  .p2p-section-title{margin:34px 0 16px!important;padding-top:20px!important;display:block!important}
+  .p2p-section-title h2{font-size:26px!important;line-height:1.08!important;margin:0!important}
+  .p2p-section-title span{display:block!important;margin-top:8px!important}
+  .p2p-tiles{grid-template-columns:1fr!important;gap:12px!important}
+  .p2p-tile{padding:18px!important}
+  .p2p-number{margin-bottom:10px!important}
+  .p2p-bottom{padding-top:20px!important;gap:6px!important}
+  .main{padding:16px!important}
+  .topbar{padding:14px!important;gap:12px!important;align-items:flex-start!important}
+  .top-actions{width:100%!important;display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+  .top-actions .btn{width:100%!important}
+  .p2p-mobile-nav{margin-top:10px!important}
+  #p2p-page-host{margin-top:16px!important}
+  .p2p-page-head{padding:20px!important;border-radius:18px!important;margin-bottom:12px!important}
+  .p2p-page-head:after{width:130px!important;height:130px!important;right:-40px!important;top:-35px!important}
+  .p2p-page-head h2{font-size:30px!important;line-height:1.05!important;margin:5px 0 8px!important;max-width:78%!important}
+  .p2p-page-head p{font-size:14px!important;line-height:1.5!important;max-width:82%!important}
+  .garnish-section-story{margin:0 0 14px!important;padding:12px 14px!important;font-size:14px!important}
+  .card{padding:15px!important;border-radius:15px!important}
+  .card-head{align-items:flex-start!important;gap:10px!important;margin-bottom:12px!important}
+  .card-head>div:last-child{max-width:100%!important}
+  .kpis,.grid-2,.grid-2.equal,.plan,#estimateResults{grid-template-columns:1fr!important;gap:10px!important}
+  .garnish-sales-grid{grid-template-columns:1fr!important;gap:10px!important}
+  .garnish-sales-underlay{padding:22px 18px!important;border-radius:18px!important;margin-top:18px!important}
+  .garnish-sales-underlay h3{font-size:31px!important;line-height:1.05!important;margin-bottom:12px!important}
+  .garnish-sales-underlay p{font-size:14px!important;line-height:1.6!important}
+  .garnish-home-pitch{padding:22px 18px!important;border-radius:18px!important;margin-top:24px!important}
+  .garnish-home-pitch h2{font-size:32px!important;line-height:1.05!important}
+  .garnish-home-pitch p{font-size:14px!important;line-height:1.6!important}
+  .garnish-sales-point{padding:14px!important}
+  .table{display:block!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+  .recipe-head-fields{grid-template-columns:1fr!important}
+  .recipe-ingredient-row{grid-template-columns:1fr!important}
+  .recipe-ingredient-row .ingredientSelect,.recipe-ingredient-row .ingredientQty,.recipe-ingredient-row .ingredientUnit,.recipe-ingredient-row .removeRow{grid-column:1!important;width:100%!important}
+  #menu-costing .grid-2.equal{gap:16px!important}
+  #menu-costing [style*="display:flex"]{flex-wrap:wrap!important}
+  #menu-costing #addIngredientBtn,#menu-costing #saveRecipeBtn{flex:1 1 100%!important;width:100%!important}
+  #account-panel{margin:12px 0!important;max-width:none!important}
+  #commercial-settings [style*="grid-template-columns"],#live-consultant [style*="grid-template-columns"],#consultant-admin-panel [style*="grid-template-columns"]{grid-template-columns:1fr!important}
+  #myobImportBridge [style*="grid-template-columns"]{grid-template-columns:1fr!important}
+  .pill{white-space:nowrap!important}
+}
 `;
 document.head.appendChild(style);
 
