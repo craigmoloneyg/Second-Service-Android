@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 210" role="img" aria-labelledby="t d">
+<title id="t">Garnish</title><desc id="d">Garnish wordmark with citrus garnish mark.</desc>
+<text x="18" y="150" fill="#F2F3DF" font-family="Georgia, 'Palatino Linotype', 'Book Antiqua', serif" font-size="150" font-weight="700" letter-spacing="-8">garnish</text>
+<g transform="translate(654 18)">
+<circle cx="45" cy="45" r="36" fill="#A8D92F"/>
+<g fill="#F2F3DF">
+<path d="M45 45L45 10A35 35 0 0 1 67 18Z"/><path d="M45 45L73 24A35 35 0 0 1 79 50Z"/>
+<path d="M45 45L79 57A35 35 0 0 1 61 78Z"/><path d="M45 45L55 79A35 35 0 0 1 29 77Z"/>
+<path d="M45 45L23 72A35 35 0 0 1 11 49Z"/><path d="M45 45L10 42A35 35 0 0 1 23 20Z"/>
+</g><circle cx="45" cy="45" r="8" fill="#F2F3DF"/></g>
+</svg>
