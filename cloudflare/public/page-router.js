@@ -10,7 +10,7 @@ const routes={
   square:{title:'Square',subtitle:'Live POS connection, sales sync and menu activity.'},
   workspace:{title:'Workspace',subtitle:'Account, integrations, billing and venue settings.'}
 };
-const targetToRoute={overview:'overview','profit-recovery':'profit-recovery','invoice-processing':'purchasing',purchasing:'purchasing',labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst','workspace-info':'workspace','square-pos':'square','account-panel':'workspace'};
+const targetToRoute={overview:'overview','profit-recovery':'profit-recovery','invoice-processing':'purchasing','supplier-intelligence':'purchasing',purchasing:'purchasing',labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst','workspace-info':'workspace','square-pos':'square','account-panel':'workspace'};
 function routeFor(el){
   const ids=[el.id,...[...el.querySelectorAll('[id]')].map(x=>x.id)];
   for(const id of ids){if(targetToRoute[id])return targetToRoute[id];}
@@ -31,6 +31,12 @@ function splitGrid(node,views){
   node.remove();
   return true;
 }
+function enforceKnownRoutes(views){
+  const purchasing=['invoice-processing','supplier-intelligence'];
+  const menu=['menu-costing'];
+  for(const id of purchasing){const el=document.getElementById(id);if(el&&el.parentElement!==views.purchasing)views.purchasing.appendChild(el);}
+  for(const id of menu){const el=document.getElementById(id);if(el&&el.parentElement!==views['menu-costing'])views['menu-costing'].appendChild(el);}
+}
 function build(){
   const main=document.querySelector('main.main'); if(!main||document.getElementById('p2p-page-host'))return;
   const style=document.createElement('style');style.textContent=`
@@ -48,6 +54,7 @@ function build(){
     if(node.classList.contains('grid-2')&&splitGrid(node,views))return;
     views[routeFor(node)].appendChild(node);
   });
+  enforceKnownRoutes(views);
   main.appendChild(host);
   const mobile=document.createElement('div');mobile.className='p2p-mobile-nav';mobile.innerHTML=`<select aria-label="Price 2 Plate section">${Object.entries(routes).map(([k,v])=>`<option value="${k}">${v.title}</option>`).join('')}</select>`;header?.after(mobile);mobile.querySelector('select').onchange=e=>go(e.target.value,true);
   document.querySelectorAll('.nav a').forEach(a=>{const id=(a.getAttribute('href')||'').replace('#','');const r=targetToRoute[id]||id;if(routes[r]){a.dataset.route=r;a.onclick=e=>{e.preventDefault();go(r,true);};}});
