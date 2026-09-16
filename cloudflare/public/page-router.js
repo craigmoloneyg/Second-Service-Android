@@ -12,7 +12,7 @@ const routes={
 };
 const map={
   overview:'overview','profit-recovery':'profit-recovery',
-  'invoice-processing':'purchasing','supplier-intelligence':'purchasing',purchasing:'purchasing',
+  'invoice-processing':'purchasing','supplier-intelligence':'purchasing','inventory-panel':'purchasing','inventory-panel':'purchasing',purchasing:'purchasing',
   labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst',
   square:'square','square-pos':'square','workspace-info':'workspace','account-panel':'workspace','commercial-settings':'workspace'
 };
