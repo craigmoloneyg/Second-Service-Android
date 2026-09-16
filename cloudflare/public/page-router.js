@@ -1,16 +1,16 @@
 (()=>{
 const routes={
-  overview:{title:'Overview',subtitle:'The headline numbers and venue health at a glance.'},
-  'profit-recovery':{title:'Profit recovery',subtitle:'Prioritise the leaks with the biggest financial impact.'},
-  purchasing:{title:'Purchasing',subtitle:'Invoices, suppliers, ingredient costs and price movement.'},
-  labour:{title:'Labour',subtitle:'Match wage spend to real trading demand.'},
-  'menu-costing':{title:'Menu performance',subtitle:'Recipe costs, selling prices and contribution by dish.'},
-  bar:{title:'Bar',subtitle:'Beverage cost, pour margin and stock variance.'},
-  analyst:{title:'Ask the Analyst',subtitle:'Interrogate your venue evidence in plain English.'},
-  consultant:{title:'Live consultant',subtitle:'Message a real hospitality consultant and keep the conversation in one place.'},
-  'consultant-admin':{title:'Consultant inbox',subtitle:'Review and reply to customer consultant conversations.'},
-  square:{title:'Square',subtitle:'Live POS connection, sales sync and menu activity.'},
-  workspace:{title:'Workspace',subtitle:'Account, integrations, billing and venue settings.'}
+  overview:{title:'Overview',subtitle:'Your commercial control room: revenue, costs, margin and the signals that matter first.'},
+  'profit-recovery':{title:'Profit recovery',subtitle:'Find the profit leaks worth fixing first, backed by your own trading evidence.'},
+  purchasing:{title:'Purchasing',subtitle:'Turn supplier invoices into ingredient costs, purchasing history and price-movement intelligence.'},
+  labour:{title:'Labour',subtitle:'Put labour beside demand so wage spend can be read in commercial context.'},
+  'menu-costing':{title:'Menu performance',subtitle:'Know the real cost, food-cost percentage and contribution behind every dish.'},
+  bar:{title:'Bar',subtitle:'Bring bar purchasing, pour cost and stock variance into the same commercial view.'},
+  analyst:{title:'Ask the Analyst',subtitle:'Ask your venue data questions in plain English and get evidence-led interpretation.'},
+  consultant:{title:'Live consultant',subtitle:'Keep expert human support attached to the same venue evidence and commercial context.'},
+  'consultant-admin':{title:'Consultant inbox',subtitle:'Review customer cases with the numbers, history and conversation in one place.'},
+  square:{title:'Square',subtitle:'Connect sales reality to menu cost so volume and margin can be read together.'},
+  workspace:{title:'Workspace',subtitle:'Connect the systems powering Garnish: account, Square, MYOB, billing and venue data.'}
 };
 const map={
   overview:'overview','profit-recovery':'profit-recovery',
