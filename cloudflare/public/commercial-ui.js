@@ -24,18 +24,18 @@ function add(){
       </div>
 
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
-        <div class="card-head"><div><h2>MYOB</h2><div class="muted">Connect live when MYOB approves the app, or import MYOB exports now for a full Garnish test.</div></div><span class="pill blue" id="myobBadge">Checking…</span></div>
+        <div class="card-head"><div><h2>MYOB</h2><div class="muted">Connect live when MYOB approves the app, or import your MYOB accounting exports now so Garnish can use them with Square, invoices and recipes.</div></div><span class="pill blue" id="myobBadge">Checking…</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="myobConnect">Connect MYOB</button><button class="btn" id="myobSync" hidden>Sync P&L</button><button class="btn ghost" id="myobDisconnect" hidden>Disconnect</button></div>
         <div class="muted" id="myobMsg" style="margin-top:10px"></div>
 
         <div id="myobImportBridge" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
-          <div class="kicker">Temporary test bridge</div>
-          <h3 style="margin:5px 0 8px">Import MYOB exports</h3>
-          <div class="muted" style="margin-bottom:10px">Export CSV or JSON from MYOB and load it here. Imported accounting data is supplied to the Garnish AI workers alongside Square, invoices and recipes.</div>
+          <div class="kicker">MYOB accounting import</div>
+          <h3 style="margin:5px 0 8px">Import all MYOB exports</h3>
+          <div class="muted" style="margin-bottom:10px">Load up to 50 MYOB CSV, JSON or text exports at once. Garnish stores them with your account and uses them alongside Square, invoices and recipes.</div>
           <div style="display:grid;grid-template-columns:minmax(150px,.6fr) minmax(220px,1fr) auto;gap:8px">
             <select id="myobImportKind" style="${fieldStyle()}"><option value="profit_and_loss">Profit & Loss</option><option value="purchases">Purchases</option><option value="inventory">Inventory</option><option value="general_ledger">General Ledger</option><option value="other">Other MYOB export</option></select>
-            <input id="myobImportFile" type="file" accept=".csv,.json,.txt,text/csv,application/json,text/plain" style="${fieldStyle()}">
-            <button class="btn primary" id="myobImportBtn" type="button">Import for test</button>
+            <input id="myobImportFile" type="file" multiple accept=".csv,.json,.txt,text/csv,application/json,text/plain" style="${fieldStyle()}">
+            <button class="btn primary" id="myobImportBtn" type="button">Import MYOB data</button>
           </div>
           <div id="myobImportMsg" class="muted" style="margin-top:10px"></div>
           <div id="myobImportList" style="margin-top:10px"></div>
@@ -174,16 +174,34 @@ function bind(){if($('planBadge'))$('planBadge').onclick=()=>{if(typeof window.G
     $('myobDisconnect').onclick=async()=>{try{await api('/api/myob/disconnect',{method:'POST'});status()}catch(e){$('myobMsg').textContent=e.message}};
     $('myobCfSave').onclick=async()=>{try{$('myobMsg').textContent='Verifying MYOB company file…';await api('/api/myob/company-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('myobCfUser').value,password:$('myobCfPass').value})});$('myobCfPass').value='';$('myobMsg').textContent='MYOB company file verified.';status()}catch(e){$('myobMsg').textContent=e.message}};
     $('myobImportBtn').onclick=async()=>{
-      const file=$('myobImportFile').files?.[0],msg=$('myobImportMsg');
-      if(!file){msg.textContent='Choose a MYOB CSV or JSON export first.';return;}
-      msg.textContent='Importing '+file.name+'…';$('myobImportBtn').disabled=true;
+      const files=[...($('myobImportFile').files||[])],msg=$('myobImportMsg');
+      if(!files.length){msg.textContent='Choose one or more MYOB CSV, JSON or text exports first.';return;}
+      if(files.length>50){msg.textContent='Choose up to 50 MYOB exports at a time.';return;}
+      const fallback=$('myobImportKind').value;
+      const detectKind=name=>{
+        const n=String(name||'').toLowerCase();
+        if(/profit|p&l|pnl|income/.test(n))return 'profit_and_loss';
+        if(/purchase|bill|supplier|payable/.test(n))return 'purchases';
+        if(/inventory|stock|item/.test(n))return 'inventory';
+        if(/ledger|journal|general.?ledger|gl\b/.test(n))return 'general_ledger';
+        return fallback;
+      };
+      $('myobImportBtn').disabled=true;
+      let ok=0,failed=0,totalRows=0;
       try{
-        const r=await fetch('/api/myob/import',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type||'text/csv','X-Filename':encodeURIComponent(file.name),'X-MYOB-Kind':$('myobImportKind').value},body:file});
-        const x=await r.json();if(!r.ok)throw new Error(x.error||'MYOB import failed.');
-        msg.textContent='Imported '+x.filename+(x.rows!=null?' · '+x.rows+' rows':'')+'. It is now available to the AI workers.';
+        for(let i=0;i<files.length;i++){
+          const file=files[i],kind=detectKind(file.name);
+          msg.textContent='Importing '+(i+1)+' of '+files.length+' · '+file.name+'…';
+          try{
+            const r=await fetch('/api/myob/import',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type||'text/csv','X-Filename':encodeURIComponent(file.name),'X-MYOB-Kind':kind},body:file});
+            const x=await r.json();if(!r.ok)throw new Error(x.error||'MYOB import failed.');
+            ok++;if(x.rows!=null)totalRows+=Number(x.rows)||0;
+          }catch(e){failed++;}
+        }
+        msg.textContent='MYOB import complete · '+ok+' file'+(ok===1?'':'s')+' imported'+(totalRows?' · '+totalRows+' rows':'')+(failed?' · '+failed+' failed':'')+'.';
         $('myobImportFile').value='';loadImports();
         window.dispatchEvent(new Event('p2p-data-changed'));
-      }catch(e){msg.textContent=e.message;}finally{$('myobImportBtn').disabled=false;}
+      }finally{$('myobImportBtn').disabled=false;}
     };
   }
 
