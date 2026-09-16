@@ -71,7 +71,7 @@ async function authUser(env,cookie){
   const token=cookie.match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(!token||!env.DB) return null;
   const row=await env.DB.prepare("SELECT a.id,a.email,a.workspace_id,s.expires_at FROM p2p_sessions s JOIN p2p_accounts a ON a.id=s.account_id WHERE s.token=?").bind(token).first();
-  if(!row||Date.parse(row.expires_at)<=Date.now()) return null;
+  if(!row||!row.expires_at||Date.parse(row.expires_at)<=Date.now()) return null;
   return row;
 }
 async function mergeWorkspaceIntoAccount(env,fromId,toId){
@@ -123,8 +123,11 @@ async function authApi(request,env,action){
         if(existing.password_hash&&existing.password_salt){
           const match=(await hashPassword(password,existing.password_salt))===existing.password_hash;
           if(match) return issueSession(existing.id);
+          return reply({error:"That email already exists. Use Sign in with the password used when the account was created."},409);
         }
-        return reply({error:"An account with that email already exists. Use Sign in instead."},409);
+        const salt=tokenHex(), hash=await hashPassword(password,salt), workspaceId=existing.workspace_id||tokenHex(), now=existing.created_at||new Date().toISOString();
+        await env.DB.prepare("UPDATE p2p_accounts SET password_hash=?,password_salt=?,workspace_id=?,created_at=? WHERE id=?").bind(hash,salt,workspaceId,now,existing.id).run();
+        return issueSession(existing.id);
       }
       const id=tokenHex(), salt=tokenHex(), workspaceId=tokenHex(), hash=await hashPassword(password,salt), now=new Date().toISOString();
       await env.DB.prepare("INSERT INTO p2p_accounts (id,email,password_hash,password_salt,workspace_id,created_at) VALUES (?,?,?,?,?,?)").bind(id,email,hash,salt,workspaceId,now).run();
@@ -138,7 +141,7 @@ async function authApi(request,env,action){
     return issueSession(account.id);
   }catch(error){
     console.error("Garnish auth error",error?.stack||error?.message||error);
-    return reply({error:"The account service hit an error. Please try again now."},503);
+    return reply({error:"Account setup did not complete. Refresh once, then use Create account with the same email and password."},503);
   }
 }
 export async function api(request,env,extractInvoice,deriveBaseCost,outputText) {
