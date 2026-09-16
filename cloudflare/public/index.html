@@ -47,6 +47,21 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
 .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
 @media(max-width:980px){.shell{grid-template-columns:1fr}.sidebar{display:none}.main{padding:22px}.kpis{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-2.equal{grid-template-columns:1fr}.plan{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.kpis,.plan{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}.main{padding:18px}}
+
+#menu-costing,.recipe-head-fields,#recipeRows,.recipe-ingredient-row{min-width:0;max-width:100%}
+.recipe-ingredient-row select,.recipe-ingredient-row input,.recipe-head-fields input{min-width:0;width:100%}
+@media(max-width:760px){
+  .recipe-head-fields{grid-template-columns:1fr 1fr!important}
+  .recipe-head-fields #recipeName{grid-column:1/-1}
+  .recipe-ingredient-row{grid-template-columns:minmax(0,1fr) minmax(82px,.45fr)!important}
+  .recipe-ingredient-row .ingredientSelect{grid-column:1/-1}
+  .recipe-ingredient-row .removeRow{width:100%}
+}
+@media(max-width:480px){
+  .recipe-head-fields{grid-template-columns:1fr!important}
+  .recipe-head-fields #recipeName{grid-column:auto}
+  .recipe-ingredient-row{grid-template-columns:1fr!important}
+}
 </style>
 <link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07111e"><script>(()=>{const original=window.fetch.bind(window);const ready=original('/api/session',{credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error('Could not open your private workspace.');});window.fetch=async(input,options)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&url.pathname!='/api/session')await ready;const response=await original(input,options);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/api/report')){const parse=response.json.bind(response);response.json=async()=>{try{return await parse();}catch{throw new Error('The service returned an unreadable response. Please retry.');}};}return response;};})();</script></head>
 <body>
@@ -150,7 +165,7 @@ h1{font-size:32px;margin:6px 0 4px}h2{margin:0;font-size:19px}h3{margin:0;font-s
   <div class="grid-2 equal">
     <div style="padding:4px">
       <div class="kicker">Create recipe</div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin:10px 0">
+      <div class="recipe-head-fields" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr) minmax(90px,1fr);gap:10px;margin:10px 0;min-width:0">
         <input id="recipeName" placeholder="Dish name, e.g. Carbonara" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
         <input id="sellingPrice" type="number" step="0.01" placeholder="Sell $" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
         <input id="yieldPortions" type="number" step="1" value="1" min="1" placeholder="Yield" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:12px">
@@ -293,7 +308,7 @@ function addRecipeRow(){
   if(!wrap) return;
   const row=document.createElement("div");
   row.className="recipe-ingredient-row";
-  row.style.cssText="display:grid;grid-template-columns:2.3fr .8fr .8fr auto;gap:8px;margin-top:8px";
+  row.style.cssText="display:grid;grid-template-columns:minmax(0,2.3fr) minmax(90px,.8fr) minmax(80px,.8fr) auto;gap:8px;margin-top:8px;width:100%;min-width:0";
   row.innerHTML=`
     <select class="ingredientSelect" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px"></select>
     <input class="ingredientQty" type="number" step="0.01" min="0" placeholder="Qty" style="background:#071321;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px">
