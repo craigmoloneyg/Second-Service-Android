@@ -122,8 +122,10 @@ var worker_default = {
 };
 async function extractInvoice(request, env) {
   if (!env.OPENAI_API_KEY) return json({ error: "OpenAI API key has not been added to Cloudflare yet." }, 503);
-  const contentType = (request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-  if (!ALLOWED.has(contentType)) return json({ error: "Please upload a PDF, PNG, JPG or WEBP invoice." }, 400);
+  let contentType = (request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  const aliases={"image/jpg":"image/jpeg","image/pjpeg":"image/jpeg","image/x-png":"image/png"};
+  contentType=aliases[contentType]||contentType;
+  if (!ALLOWED.has(contentType)) return json({ error: "Please upload a PDF, PNG, JPEG or WEBP invoice." }, 400);
   const body = await request.arrayBuffer();
   if (!body.byteLength || body.byteLength > MAX_BYTES) return json({ error: "Invoice must be between 1 byte and 20 MB." }, 413);
   const encoded = request.headers.get("x-filename") || "invoice";
