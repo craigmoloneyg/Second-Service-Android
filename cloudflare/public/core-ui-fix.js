@@ -9,6 +9,7 @@ async function api(path,options={}){
 }
 const targetToRoute={overview:'overview','profit-recovery':'profit-recovery','invoice-processing':'purchasing',purchasing:'purchasing',labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst','workspace-info':'workspace','square-pos':'square','account-panel':'workspace','commercial-settings':'workspace'};
 function go(route){
+  if(typeof window.P2P_ROUTE_GO==='function'){window.P2P_ROUTE_GO(route,true);return;}
   const views=[...document.querySelectorAll('.p2p-page')];
   if(views.length){
     views.forEach(v=>v.classList.toggle('active',v.dataset.page===route));
@@ -25,13 +26,7 @@ function go(route){
   const id=Object.keys(targetToRoute).find(k=>targetToRoute[k]===route)||route;
   const el=$(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function wireNav(){
-  const nav=document.querySelector('.nav');
-  if(nav&&!nav.querySelector('a[data-square-nav]')){const a=document.createElement('a');a.href='#square';a.dataset.squareNav='1';a.innerHTML='<span class="icon">▣</span>Square';nav.insertBefore(a,nav.querySelector('a[href="#workspace-info"]')||null);}
-  document.querySelectorAll('.nav a').forEach(a=>{
-    a.onclick=e=>{e.preventDefault();const id=(a.getAttribute('href')||'').replace('#','');go(targetToRoute[id]||id||'overview');};
-  });
-}
+function wireNav(){}
 function moveDynamicWorkspaceCards(){
   const workspace=document.querySelector('.p2p-page[data-page="workspace"]');
   if(!workspace)return;
