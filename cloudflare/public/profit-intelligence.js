@@ -50,6 +50,46 @@ async function load(){
     if(rows[1]){rows[1].querySelector('strong').textContent=pct(j.mapped_sales_share_pct);rows[1].querySelector('.muted').textContent='Square revenue currently mapped to recipes';const bar=rows[1].querySelector('.progress span');if(bar)bar.style.width=Math.min(100,Number(j.mapped_sales_share_pct||0))+'%';}
     if(rows[2]){rows[2].querySelector('strong').textContent=money(j.contribution_30d);}
   }
+  const recovery=document.getElementById('recovery-plan');
+  if(recovery){
+    const pill=recovery.querySelector('.pill');
+    if(pill){pill.textContent='Live';pill.className='pill green';}
+    const plan=recovery.querySelector('.plan');
+    if(plan){
+      const topMove=(j.supplier_moves||[])[0];
+      const topLeak=(j.leaks||[])[0];
+      const mapped=Number(j.mapped_sales_share_pct||0);
+      const invoiceCount=Number(j.invoice_count_all_time||0);
+      const revenue=Number(j.revenue_30d||0);
+      const unmapped=Number(j.unmapped_sales_30d||0);
+
+      const day1=invoiceCount
+        ? 'Review '+invoiceCount+' captured invoices, verify high-value ingredient units, and check '+((j.supplier_moves||[]).length)+' supplier price movements.'
+        : 'Load supplier invoices so Price 2 Plate can establish a purchasing baseline.';
+
+      const day15=topMove
+        ? 'Investigate '+topMove.name+' from '+(topMove.supplier||'the supplier')+', now '+money(topMove.to)+' versus '+money(topMove.from)+' ('+(topMove.change_pct>0?'+':'')+Number(topMove.change_pct).toFixed(1)+'%).'
+        : 'Build repeat invoice history so supplier price movement can be measured.';
+
+      const day31=topLeak
+        ? 'Act on '+topLeak.name+', currently '+pct(topLeak.food_cost_pct)+' food cost with '+money(topLeak.recoverable_to_30pct)+' recoverable to the 30% target.'
+        : mapped<100
+          ? 'Map the remaining '+money(unmapped)+' of Square sales to costed recipes so dish-level profitability becomes measurable.'
+          : 'Review contribution by dish and protect the strongest-margin, highest-volume items.';
+
+      const day61=revenue
+        ? 'Track the same KPIs weekly against the current '+money(revenue)+' 30-day revenue baseline, '+pct(j.estimated_food_cost_pct)+' mapped food cost and '+money(j.contribution_30d)+' mapped contribution.'
+        : 'Establish a 30-day Square sales baseline, then compare food cost, contribution and supplier movement weekly.';
+
+      plan.innerHTML=
+        '<div class="plan-step"><strong>DAYS 1–14 · CLEAN BASELINE</strong><p>'+esc(day1)+'</p></div>'+
+        '<div class="plan-step"><strong>DAYS 15–30 · PURCHASING</strong><p>'+esc(day15)+'</p></div>'+
+        '<div class="plan-step"><strong>DAYS 31–60 · MENU MARGIN</strong><p>'+esc(day31)+'</p></div>'+
+        '<div class="plan-step"><strong>DAYS 61–90 · PROVE RECOVERY</strong><p>'+esc(day61)+'</p></div>';
+    }
+    const sub=recovery.querySelector('.card-head .muted');
+    if(sub)sub.textContent='Live plan built from '+(j.invoice_count_all_time||0)+' invoices, '+money(j.revenue_30d)+' Square revenue and '+pct(j.mapped_sales_share_pct)+' mapped sales.';
+  }
 }
 window.addEventListener('p2p-data-changed',load);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(load,500));else setTimeout(load,500);
