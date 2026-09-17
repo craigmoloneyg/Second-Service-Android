@@ -59,7 +59,7 @@ input::placeholder,textarea::placeholder{color:#799082!important}
 .p2p-page-head:after{content:'';position:absolute;right:-40px;top:-50px;width:190px;height:190px;border-radius:50%;background:#A8D92F!important;opacity:.95}
 .p2p-page-head .kicker,.p2p-page-head h2,.p2p-page-head p{position:relative;z-index:1}.p2p-page-head .kicker{color:#A8D92F!important}.p2p-page-head h2{color:#F2F3DF!important;font-size:38px!important}.p2p-page-head p{color:#DCE7CE!important;max-width:680px!important;font-size:15px!important;line-height:1.6!important}
 .garnish-sales-underlay{margin:24px 0 0;background:#0B4B3A;color:#F2F3DF;border-radius:24px;padding:42px;position:relative;overflow:hidden}
-.garnish-sales-underlay:after{content:'';position:absolute;right:-34px;bottom:-34px;width:220px;height:220px;background:url('/garnish-icon.svg') center/contain no-repeat;opacity:.98}
+.garnish-sales-underlay:after{content:'';position:absolute;right:24px;bottom:18px;width:170px;height:170px;background:url('/garnish-mark.svg?v=1') center/contain no-repeat;opacity:.92}
 .garnish-sales-underlay>*{position:relative;z-index:1}.garnish-sales-underlay .eyebrow{color:#A8D92F;font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
 .garnish-sales-underlay h3{color:#F2F3DF!important;font-size:42px!important;max-width:820px;margin:10px 0 14px;line-height:1.04}
 .garnish-sales-underlay p{max-width:780px;color:#DCE7CE;font-size:16px;line-height:1.7}
