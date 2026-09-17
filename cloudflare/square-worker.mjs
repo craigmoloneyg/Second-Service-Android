@@ -77,11 +77,11 @@ export default {
     if(url.pathname==='/api/auth/signout') return directAuth(request,env,'signout');
     if(url.pathname==='/api/session') return directSession(request,env);
     if(url.pathname.startsWith('/api/square/')) return handleSquare(request,env);
-    if(url.pathname.startsWith('/api/billing/')||url.pathname.startsWith('/api/consultant/')||url.pathname.startsWith('/api/myob/')) return handleCommercial(request,env);
+    if(url.pathname.startsWith('/api/billing/')||url.pathname.startsWith('/api/consultant/')||url.pathname.startsWith('/api/myob/')||url.pathname.startsWith('/api/documents/')) return handleCommercial(request,env);
     const response=await legacy.fetch(request,env,ctx);
     const type=response.headers.get('content-type')||'';
     if(request.method==='GET'&&type.includes('text/html')){
-      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=11" defer></script><script src="/commercial-ui.js?v=8" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=4" defer></script>',{html:true});}}).transform(response);
+      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=11" defer></script><script src="/commercial-ui.js?v=9" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=4" defer></script>',{html:true});}}).transform(response);
     }
     return response;
   }
