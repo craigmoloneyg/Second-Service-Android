@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Garnish mark">
+<g fill="#A8D92F">
+  <path d="M50 50L50 8A42 42 0 0 1 76 18Z"/>
+  <path d="M50 50L83 25A42 42 0 0 1 91 56Z"/>
+  <path d="M50 50L90 63A42 42 0 0 1 68 88Z"/>
+  <path d="M50 50L62 90A42 42 0 0 1 31 87Z"/>
+  <path d="M50 50L23 82A42 42 0 0 1 8 55Z"/>
+  <!-- intentionally missing one slice -->
+</g>
+<circle cx="50" cy="50" r="8" fill="#0B4B3A"/>
+</svg>
