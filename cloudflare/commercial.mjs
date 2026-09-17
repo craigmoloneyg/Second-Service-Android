@@ -12,6 +12,7 @@ async function tables(env){
  await env.DB.prepare('CREATE TABLE IF NOT EXISTS p2p_myob_connections (account_id TEXT PRIMARY KEY,business_id TEXT NOT NULL,access_token TEXT NOT NULL,refresh_token TEXT,expires_at TEXT,last_sync_at TEXT,snapshot TEXT,cf_token TEXT,updated_at TEXT NOT NULL)').run();
  try{await env.DB.prepare('ALTER TABLE p2p_myob_connections ADD COLUMN cf_token TEXT').run();}catch{}
  await env.DB.prepare('CREATE TABLE IF NOT EXISTS p2p_myob_imports (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,kind TEXT NOT NULL,filename TEXT NOT NULL,imported_at TEXT NOT NULL,snapshot TEXT NOT NULL)').run();
+ await env.DB.prepare('CREATE TABLE IF NOT EXISTS garnish_document_imports (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,filename TEXT NOT NULL,mime_type TEXT,imported_at TEXT NOT NULL,extracted TEXT NOT NULL)').run();
 }
 async function user(request,env){const c=request.headers.get('cookie')||'',t=c.match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];if(!t)return null;return env.DB.prepare('SELECT a.id,a.email,a.workspace_id FROM garnish_sessions_v2 s JOIN garnish_accounts_v2 a ON a.id=s.account_id WHERE s.token=? AND s.expires_at>?').bind(t,new Date().toISOString()).first();}
 function consultantAdmin(env,u){
@@ -50,11 +51,48 @@ async function myobGet(env,row,path){
  }
  return j;
 }
-export async function handleCommercial(request,env){const url=new URL(request.url);if(!url.pathname.startsWith('/api/billing/')&&!url.pathname.startsWith('/api/consultant/')&&!url.pathname.startsWith('/api/myob/'))return null;if(!env.DB)return json({error:'Storage unavailable.'},503);await tables(env);try{
+async function extractDocumentWithAI(request,env,u){
+ const filename=decodeURIComponent(request.headers.get('x-filename')||'document').replace(/[^\\w.\\- ()]/g,'_').slice(0,160);
+ const mime=(request.headers.get('content-type')||'application/octet-stream').split(';')[0];
+ const body=await request.arrayBuffer();
+ if(!body.byteLength||body.byteLength>20000000)return json({error:'Document must be under 20 MB.'},413);
+ if(!env.OPENAI_API_KEY)return json({error:'Document AI is not configured.'},503);
+ const form=new FormData();
+ form.append('purpose','user_data');
+ form.append('file',new Blob([body],{type:mime}),filename);
+ let fileId=null;
+ try{
+  const upload=await fetch('https://api.openai.com/v1/files',{method:'POST',headers:{Authorization:'Bearer '+env.OPENAI_API_KEY},body:form});
+  const uj=await upload.json();
+  if(!upload.ok)throw new Error(uj?.error?.message||'Could not upload document to AI.');
+  fileId=uj.id;
+  const schema={type:'object',additionalProperties:false,properties:{
+   document_type:{type:'string'},
+   title:{type:['string','null']},
+   summary:{type:'string'},
+   key_facts:{type:'array',items:{type:'string'}},
+   financial_data:{type:'array',items:{type:'object',additionalProperties:false,properties:{label:{type:'string'},value:{type:['number','string','null']},period:{type:['string','null']},notes:{type:['string','null']}},required:['label','value','period','notes']}},
+   tables:{type:'array',items:{type:'object',additionalProperties:false,properties:{name:{type:'string'},headers:{type:'array',items:{type:'string'}},rows:{type:'array',items:{type:'array',items:{type:['string','number','null']}}}},required:['name','headers','rows']}},
+   warnings:{type:'array',items:{type:'string'}}
+  },required:['document_type','title','summary','key_facts','financial_data','tables','warnings']};
+  const payload={model:env.OPENAI_MODEL||'gpt-5.6-luna',instructions:'Read this business document carefully. Extract factual hospitality, accounting and operational data. Preserve numbers, dates, categories and labels exactly where possible. For spreadsheets, inspect all relevant sheets and return useful structured tables. Do not invent missing values. Do not make business decisions or recommendations in this extraction step.',input:[{role:'user',content:[{type:'input_file',file_id:fileId},{type:'input_text',text:'Extract this document into the structured schema for Garnish Hospitality Intelligence.'}]}],text:{format:{type:'json_schema',name:'garnish_document',strict:true,schema}},max_output_tokens:16000};
+  const rr=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const rj=await rr.json();
+  if(!rr.ok)throw new Error(rj?.error?.message||'AI document extraction failed.');
+  const out=(rj.output||[]).flatMap(x=>x.content||[]).find(x=>x.type==='output_text')?.text;
+  if(!out)throw new Error('AI returned no document data.');
+  const extracted=JSON.parse(out),id=crypto.randomUUID(),now=new Date().toISOString();
+  await env.DB.prepare('INSERT INTO garnish_document_imports(id,account_id,filename,mime_type,imported_at,extracted) VALUES(?,?,?,?,?,?)').bind(id,u.id,filename,mime,now,JSON.stringify(extracted)).run();
+  return json({ok:true,id,filename,imported_at:now,extracted},201);
+ }finally{
+  if(fileId)try{await fetch('https://api.openai.com/v1/files/'+encodeURIComponent(fileId),{method:'DELETE',headers:{Authorization:'Bearer '+env.OPENAI_API_KEY}})}catch{}
+ }
+}
+export async function handleCommercial(request,env){const url=new URL(request.url);if(!url.pathname.startsWith('/api/billing/')&&!url.pathname.startsWith('/api/consultant/')&&!url.pathname.startsWith('/api/myob/')&&!url.pathname.startsWith('/api/documents/'))return null;if(!env.DB)return json({error:'Storage unavailable.'},503);await tables(env);try{
  if(url.pathname==='/api/myob/callback'){const state=url.searchParams.get('state'),code=url.searchParams.get('code'),business=url.searchParams.get('businessId'),s=state&&await env.DB.prepare('SELECT * FROM p2p_myob_states WHERE state=?').bind(state).first();if(!s||Date.parse(s.expires_at)<Date.now()||!code||!business)return Response.redirect(url.origin+'/?myob=failed#/workspace',302);const redirect=url.origin+'/api/myob/callback',t=await myobToken(env,{grant_type:'authorization_code',code,redirect_uri:redirect,scope:'sme-general-ledger sme-purchases sme-inventory sme-company-settings sme-company-file'}),exp=new Date(Date.now()+Number(t.expires_in||1200)*1000).toISOString();await env.DB.prepare('INSERT INTO p2p_myob_connections(account_id,business_id,access_token,refresh_token,expires_at,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(account_id) DO UPDATE SET business_id=excluded.business_id,access_token=excluded.access_token,refresh_token=excluded.refresh_token,expires_at=excluded.expires_at,updated_at=excluded.updated_at').bind(s.account_id,business,await seal(env,t.access_token),await seal(env,t.refresh_token),exp,new Date().toISOString()).run();await env.DB.prepare('DELETE FROM p2p_myob_states WHERE state=?').bind(state).run();return Response.redirect(url.origin+'/?myob=connected#/workspace',302);}
- const u=await user(request,env);if(!u)return json({error:'Sign in to your Price 2 Plate account first.'},401);const sr=await sub(env,u),e=ent(sr);
+ const u=await user(request,env);if(!u)return json({error:'Sign in to your Garnish account first.'},401);const sr=await sub(env,u),e=ent(sr);
  if(url.pathname==='/api/billing/status'&&request.method==='GET')return json({subscription:e,prices:{regular:{aud_month:99},gold:{aud_month:249}},trial_days:14});
- if(url.pathname==='/api/billing/checkout'&&request.method==='POST'){const b=await request.json(),plan=b.plan==='gold'?'gold':'regular',variation=plan==='gold'?env.SQUARE_GOLD_PLAN_VARIATION_ID:env.SQUARE_REGULAR_PLAN_VARIATION_ID,amount=plan==='gold'?24900:9900;if(!env.SQUARE_BILLING_ACCESS_TOKEN||!variation)return json({error:'Subscription billing is awaiting its Square billing configuration.'},503);const r=await fetch('https://connect.squareup.com/v2/online-checkout/payment-links',{method:'POST',headers:{Authorization:'Bearer '+env.SQUARE_BILLING_ACCESS_TOKEN,'Square-Version':VERSION,'Content-Type':'application/json'},body:JSON.stringify({idempotency_key:crypto.randomUUID(),quick_pay:{name:'Price 2 Plate '+(plan==='gold'?'Gold':'Regular'),price_money:{amount,currency:'AUD'},location_id:env.SQUARE_BILLING_LOCATION_ID},checkout_options:{subscription_plan_id:variation,redirect_url:url.origin+'/#/workspace'}})}),j=await r.json();if(!r.ok)return json({error:j.errors?.[0]?.detail||'Could not open Square subscription checkout.'},502);return json({url:j.payment_link?.url,plan});}
+ if(url.pathname==='/api/billing/checkout'&&request.method==='POST'){const b=await request.json(),plan=b.plan==='gold'?'gold':'regular',variation=plan==='gold'?env.SQUARE_GOLD_PLAN_VARIATION_ID:env.SQUARE_REGULAR_PLAN_VARIATION_ID,amount=plan==='gold'?24900:9900;if(!env.SQUARE_BILLING_ACCESS_TOKEN||!variation)return json({error:'Subscription billing is awaiting its Square billing configuration.'},503);const r=await fetch('https://connect.squareup.com/v2/online-checkout/payment-links',{method:'POST',headers:{Authorization:'Bearer '+env.SQUARE_BILLING_ACCESS_TOKEN,'Square-Version':VERSION,'Content-Type':'application/json'},body:JSON.stringify({idempotency_key:crypto.randomUUID(),quick_pay:{name:'Garnish '+(plan==='gold'?'Gold':'Regular'),price_money:{amount,currency:'AUD'},location_id:env.SQUARE_BILLING_LOCATION_ID},checkout_options:{subscription_plan_id:variation,redirect_url:url.origin+'/#/workspace'}})}),j=await r.json();if(!r.ok)return json({error:j.errors?.[0]?.detail||'Could not open Square subscription checkout.'},502);return json({url:j.payment_link?.url,plan});}
  if(url.pathname==='/api/consultant/admin/status'&&request.method==='GET'){
   return json({admin:consultantAdmin(env,u)});
  }
@@ -115,8 +153,10 @@ export async function handleCommercial(request,env){const url=new URL(request.ur
   await env.DB.prepare("UPDATE p2p_consultant_requests SET status='open' WHERE id=? AND account_id=?").bind(requestId,u.id).run();
   return json({ok:true,id,created_at:now},201);
  }
+ if(url.pathname==='/api/documents/import'&&request.method==='POST')return extractDocumentWithAI(request,env,u);
+ if(url.pathname==='/api/documents'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT id,filename,mime_type,imported_at,extracted FROM garnish_document_imports WHERE account_id=? ORDER BY imported_at DESC LIMIT 30').bind(u.id).all();return json({documents:results.map(r=>({...r,extracted:JSON.parse(r.extracted)}))});}
  if(url.pathname==='/api/myob/import'&&request.method==='POST'){
-  if(!e.active)return json({error:'Your Price 2 Plate subscription is inactive.'},403);
+  if(!e.active)return json({error:'Your Garnish subscription is inactive.'},403);
   const filename=decodeURIComponent(request.headers.get('x-filename')||'MYOB-export.csv').slice(0,160);
   const kind=String(request.headers.get('x-myob-kind')||'general').toLowerCase().slice(0,40);
   const type=(request.headers.get('content-type')||'').split(';')[0].toLowerCase();
