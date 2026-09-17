@@ -23,6 +23,17 @@ function add(){
         <div class="card"><h3>Gold</h3><div style="font-size:28px;font-weight:900;margin:8px 0">A$249<span class="muted" style="font-size:12px"> / month</span></div><div class="muted">Everything in Regular plus enhanced AI and live consultant messaging with up to 4 new cases each month.</div><button class="btn primary" id="goldBtn" style="margin-top:12px">Choose Gold</button></div>
       </div>
 
+      <div id="documentIntelligence" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+        <div class="card-head"><div><div class="kicker">Document intelligence</div><h2>Drop in the file. Garnish reads it.</h2><div class="muted">Word, Excel, CSV, PDF, text and exported Google Docs or Sheets. Garnish uses AI to extract the useful business data and keeps the result with your account.</div></div><span class="pill green">AI extraction</span></div>
+        <div style="display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:8px">
+          <input id="documentImportFile" type="file" multiple accept=".doc,.docx,.xls,.xlsx,.csv,.pdf,.txt,.json,.rtf,.ods,.odt,application/pdf,text/csv,application/json,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="${fieldStyle()}">
+          <button class="btn primary" id="documentImportBtn" type="button">Read with Garnish AI</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Google Docs and Google Sheets work when downloaded from Google as Word, Excel, PDF or CSV.</div>
+        <div id="documentImportMsg" class="muted" style="margin-top:10px"></div>
+        <div id="documentImportResults" style="margin-top:12px"></div>
+      </div>
+
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
         <div class="card-head"><div><h2>MYOB</h2><div class="muted">Connect live when MYOB approves the app, or import your MYOB accounting exports now so Garnish can use them with Square, invoices and recipes.</div></div><span class="pill blue" id="myobBadge">Checking…</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="myobConnect">Connect MYOB</button><button class="btn" id="myobSync" hidden>Sync P&L</button><button class="btn ghost" id="myobDisconnect" hidden>Disconnect</button></div>
@@ -160,7 +171,38 @@ async function status(){
   loadImports();
 }
 
-function bind(){if($('planBadge'))$('planBadge').onclick=()=>{if(typeof window.GARNISH_OPEN_ACCOUNT==='function')window.GARNISH_OPEN_ACCOUNT('signin');else{const p=$('account-panel');if(p){p.hidden=false;p.scrollIntoView({behavior:'smooth',block:'start'});}}};
+function bind(){
+  if($('documentImportBtn')&&!$('documentImportBtn').dataset.ready){
+    $('documentImportBtn').dataset.ready='1';
+    $('documentImportBtn').onclick=async()=>{
+      const files=[...($('documentImportFile').files||[])],msg=$('documentImportMsg'),out=$('documentImportResults');
+      if(!files.length){msg.textContent='Choose one or more files first.';return;}
+      if(files.length>20){msg.textContent='Choose up to 20 files at a time.';return;}
+      $('documentImportBtn').disabled=true;out.innerHTML='';
+      let ok=0,failed=0;
+      try{
+        for(let i=0;i<files.length;i++){
+          const file=files[i];
+          msg.textContent='Reading '+(i+1)+' of '+files.length+' · '+file.name+'…';
+          try{
+            const rr=await fetch('/api/documents/import',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});
+            const x=await rr.json();if(!rr.ok)throw new Error(x.error||'Document extraction failed.');
+            ok++;
+            const e=x.extracted||{};
+            const facts=(e.key_facts||[]).slice(0,8).map(v=>'<li>'+esc(v)+'</li>').join('');
+            const money=(e.financial_data||[]).slice(0,10).map(v=>'<div class="evidence"><strong>'+esc(v.label)+'</strong> · '+esc(v.value)+(v.period?' · '+esc(v.period):'')+'</div>').join('');
+            out.innerHTML+='<div class="card" style="margin-top:10px"><div class="kicker">'+esc(e.document_type||'Document')+'</div><h3>'+esc(e.title||x.filename)+'</h3><p class="muted">'+esc(e.summary||'Extracted successfully.')+'</p>'+(facts?'<ul>'+facts+'</ul>':'')+money+'</div>';
+          }catch(err){
+            failed++;out.innerHTML+='<div class="evidence" style="margin-top:8px">'+esc(file.name)+' · '+esc(err.message)+'</div>';
+          }
+        }
+        msg.textContent='Document extraction complete · '+ok+' read'+(failed?' · '+failed+' failed':'')+'.';
+        $('documentImportFile').value='';
+        window.dispatchEvent(new Event('p2p-data-changed'));
+      }finally{$('documentImportBtn').disabled=false;}
+    };
+  }
+if($('planBadge'))$('planBadge').onclick=()=>{if(typeof window.GARNISH_OPEN_ACCOUNT==='function')window.GARNISH_OPEN_ACCOUNT('signin');else{const p=$('account-panel');if(p){p.hidden=false;p.scrollIntoView({behavior:'smooth',block:'start'});}}};
   if($('regularBtn')&&!$('regularBtn').dataset.ready){
     for(const [id,plan] of [['regularBtn','regular'],['goldBtn','gold']]){
       const b=$(id);b.dataset.ready='1';b.onclick=async()=>{try{const x=await api('/api/billing/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});location.href=x.url}catch(e){alert(e.message)}};
