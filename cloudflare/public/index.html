@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Garnish</title>
+<title>Garnish</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Garnish"><link rel="apple-touch-icon" href="/garnish-icon.svg">
 <style>
 :root{
   --bg:#07111e; --panel:#0c1827; --panel2:#111f30; --line:#203246;
@@ -101,7 +101,7 @@ input::placeholder,textarea::placeholder{color:#728aa2!important;opacity:1}
 .bar{background:linear-gradient(180deg,#f4c76a,#5e9af5)!important}
 .chart-line{background:#39d98a!important;box-shadow:0 0 14px rgba(57,217,138,.25)!important}
 </style>
-<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07111e"><script>(()=>{const original=window.fetch.bind(window);const ready=original('/api/session',{credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error('Could not open your private workspace.');});window.fetch=async(input,options)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&url.pathname!='/api/session')await ready;const response=await original(input,options);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/api/report')){const parse=response.json.bind(response);response.json=async()=>{try{return await parse();}catch{throw new Error('The service returned an unreadable response. Please retry.');}};}return response;};})();</script></head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0B4B3A"><script>(()=>{const original=window.fetch.bind(window);const ready=original('/api/session',{credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error('Could not open your private workspace.');});window.fetch=async(input,options)=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&url.pathname!='/api/session')await ready;const response=await original(input,options);if(url.origin===location.origin&&url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/api/report')){const parse=response.json.bind(response);response.json=async()=>{try{return await parse();}catch{throw new Error('The service returned an unreadable response. Please retry.');}};}return response;};})();</script></head>
 <body>
 <div class="shell">
 <aside class="sidebar">
