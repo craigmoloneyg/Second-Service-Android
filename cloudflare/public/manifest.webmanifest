@@ -1,0 +1,19 @@
+{
+  "name": "Garnish",
+  "short_name": "Garnish",
+  "description": "Hospitality intelligence for invoices, recipes, sales, labour and accounting.",
+  "start_url": "/?source=ipad",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F2F3DF",
+  "theme_color": "#0B4B3A",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/garnish-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
