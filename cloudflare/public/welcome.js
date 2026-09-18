@@ -88,7 +88,7 @@
       }
     }
 
-    const target = isHome ? home.querySelector('h1') : null;
+    const target = isHome ? home.querySelector('h1') : document.getElementById(view === 'invoices' ? 'invoice-processing' : view === 'menu' ? 'menu-costing' : 'dashboard');
     if (target && focus) {
       target.setAttribute('tabindex', '-1');
       target.focus({preventScroll:true});
@@ -128,7 +128,7 @@
   if (labourHost) { const button = document.createElement('button'); button.className='btn primary'; button.type='button'; button.textContent='Find labour savings'; button.addEventListener('click', () => ask(labourHost, 'labour', 'Identify labour-saving methods while maintaining service, safety and Australian employment obligations.', labourHost.innerText.slice(0, 7000))); labourHost.querySelector('.card-head')?.append(button) || labourHost.prepend(button); }
 })();
 
- 
+
 // Garnish action-plan control: turns the dashboard action into a visible, usable result.
 (() => {
   'use strict';

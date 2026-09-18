@@ -23,13 +23,13 @@ test('home actions reveal existing invoice and menu forms without recreating the
   assert.equal(doc.activeElement.id, 'menu-costing');
   dom.window.close();
 });
-test('active batches cannot be hidden by Home navigation', () => {
+test('home navigation preserves a running batch so uploads continue', () => {
   const dom = setup(); const doc = dom.window.document;
   doc.querySelector('.p2p-home [data-view=invoices]').click();
   dom.window.invoiceBatchState = {running:true};
   doc.querySelector('.p2p-bar [data-view=home]').click();
-  assert.equal(doc.querySelector('.shell').hidden, false);
-  assert.match(doc.querySelector('[role=status]').textContent, /processing/);
+  assert.equal(doc.querySelector('.shell').hidden, true);
+  assert.equal(dom.window.invoiceBatchState.running, true);
   dom.window.close();
 });
 test('existing deep links stay visible, injection is idempotent and external sites are untouched', () => {

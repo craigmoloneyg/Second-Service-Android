@@ -1,3 +1,216 @@
-undefined
+(() => {
+  'use strict';
+  if (location.origin !== 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev' || document.getElementById('p2p-style')) return;
+  const shell = document.querySelector('.shell');
+  if (!shell || !document.querySelector('#invoice-processing')) return;
+  document.title = 'Garnish · Hospitality Intelligence';
+  const legacyLogo = document.querySelector('.sidebar .logo');
+  if (legacyLogo) legacyLogo.innerHTML = 'GARNISH<small>HOSPITALITY INTELLIGENCE</small>';
+  const style = document.createElement('style');
+  style.id = 'p2p-style';
+  style.textContent = `
+    :root{--bg:#6f947d;--panel:#7fa28b;--panel2:#6a8e78;--line:#52735f;--text:#173526;--muted:#2f5842;--gold:#35634d;--green:#35634d;--red:#ab403b;--orange:#906022;--blue:#345e83;--nav:#6f947d;color-scheme:light}
+    html,body{background:var(--bg)!important;color:var(--text);font-family:Arial,Helvetica,sans-serif}
+    body{padding-top:84px}.p2p-bar *,.p2p-home *{box-sizing:border-box}
+    .p2p-bar{height:84px;position:fixed;top:0;left:0;right:0;z-index:1000;background:#6f947df5;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 6%;gap:20px}
+    .p2p-brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:700;letter-spacing:-.7px;white-space:nowrap}
+    .p2p-mark{width:38px;height:38px;flex:none}.p2p-menu{display:flex;gap:6px}.p2p-menu button{border:0;background:transparent;padding:12px 16px;color:#526358;border-radius:24px;font-weight:600;cursor:pointer}.p2p-menu button[aria-current=page]{background:#e4eadc;color:#234e3b}
+    .p2p-home{max-width:1250px;margin:auto;padding:70px 6% 42px}.p2p-hero{display:grid;grid-template-columns:1.18fr 1fr;gap:64px;align-items:center}
+    .p2p-eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#56734f;margin:0 0 24px;display:flex;align-items:center;gap:10px}.p2p-eyebrow:before{content:'';width:24px;height:1px;background:#56734f}
+    .p2p-home h1{font:normal clamp(44px,5.4vw,72px)/1.05 Georgia,serif;letter-spacing:-2.5px;margin:0 0 24px;color:#173526}.p2p-home h1 em{font-weight:normal;color:#254b37}.p2p-intro{font-size:16px;line-height:1.8;max-width:460px;color:#2f5842;margin:0 0 30px}
+    .p2p-actions{display:flex;gap:12px;flex-wrap:wrap}.p2p-home button{font:600 14px Arial,sans-serif;cursor:pointer}.p2p-primary,.p2p-secondary{border-radius:9px;padding:16px 22px;min-height:50px}.p2p-primary{color:#fff!important;background:#28523e!important;border:1px solid #28523e!important}.p2p-secondary{background:transparent;border:1px solid #bcc8b7;color:#284634}.p2p-helper{color:#2f5842;font-size:12px;margin-top:16px;line-height:1.6}
+    .p2p-art{min-height:370px;position:relative;display:grid;place-items:center;background:#769a83;border-radius:110px 110px 20px 20px;overflow:hidden}.p2p-plate{position:absolute;width:255px;height:255px;border-radius:50%;background:#86a991;box-shadow:inset 0 0 0 13px #7fa28b,inset 0 0 0 15px #52735f,0 20px 35px #3d54301a;transform:translate(48px,25px)}
+    .p2p-receipt{position:relative;background:#7fa28b;width:218px;transform:rotate(-8deg) translate(-22px,-8px);padding:26px 24px 30px;box-shadow:0 12px 28px #52735f22;border-radius:6px;color:#173526}.p2p-receipt .p2p-paper-title{font:italic 25px Georgia,serif;margin-bottom:7px}.p2p-paper-small{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:#2f5842}.p2p-paper-row{padding:17px 0;border-bottom:1px dashed #d1d9c8;font-size:12px;display:flex;justify-content:space-between;gap:10px}.p2p-paper-row span:last-child{color:#62804d}.p2p-seal{position:absolute;right:24px;bottom:24px;display:flex;align-items:center;gap:10px;background:#254b37;color:#dcefd0;padding:13px 17px;border-radius:9px;font-size:12px;box-shadow:0 6px 14px #29412814}.p2p-seal span{font-size:23px;color:#b7df74}
+    .p2p-section-title{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:58px 0 20px;padding-top:26px;border-top:1px solid #52735f}.p2p-section-title h2{font:normal 25px Georgia,serif}.p2p-section-title span{font-size:12px;color:#2f5842}
+    .p2p-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.p2p-tile{background:#7fa28b;border:1px solid #52735f;border-radius:12px;text-align:left;padding:24px!important;color:#173526;transition:transform .15s,border-color .15s}.p2p-tile:hover{transform:translateY(-3px);border-color:#648456}.p2p-number{display:block;font-size:11px;letter-spacing:1px;color:#2f5842;margin-bottom:22px}.p2p-tile strong{font:normal 22px Georgia,serif;display:block;margin-bottom:10px}.p2p-tile p{font-size:13px;line-height:1.6;color:#2f5842;font-weight:normal;margin:0}.p2p-bottom{display:flex;justify-content:space-between;gap:20px;color:#7a8474;font-size:11px;padding:28px 0 0}.p2p-note{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#264732;color:white;border-radius:8px;padding:12px 18px;z-index:1002;max-width:90%;font-size:13px}.p2p-note:empty{display:none}
+    .p2p-home[hidden],.shell[hidden]{display:none!important}
+    .sidebar{background:#6f947d!important;border-color:#52735f;top:84px;height:calc(100vh - 84px)}.nav a.active,.nav a:hover{background:#dfe7d7;color:#284634}.card{background:#7fa28b!important;box-shadow:none;border-color:#52735f;border-radius:12px}.btn{background:#6a8e78;color:#173526}.btn.primary{background:#254b37;color:#7fa28b;border-color:#254b37}.btn.ghost{color:#173526}.impact{color:#173526}.pill.green{background:#e6efdf;color:#365c2c}.pill.red{background:#f9e6df;color:#9d3d37}.pill.orange{background:#f6ecd9;color:#815421}.pill.blue{background:#e6edf1;color:#365e7a}.plan-step{background:#769a83}.bar{background:linear-gradient(#87a671,#3d684d)}.chart-line{background:#b28342;box-shadow:none}.progress{background:#638772}.progress>span{background:#52735f}.ai-box input,input,textarea,select{background:#7fa28b!important;color:#173526!important;border-color:#52735f!important}#invoiceResult{background:#f1f4e9!important}.bars{border-color:#cbd5c1}.table td{border-color:#52735f}
+    button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #a77727!important;outline-offset:4px}button:disabled{opacity:.6;cursor:wait}.p2p-home button:disabled{cursor:not-allowed}
+    @media(max-width:980px){.p2p-home{padding-top:42px}.p2p-hero{gap:28px}.p2p-art{min-height:330px}.p2p-home h1{font-size:54px}.p2p-menu button{padding:10px}.p2p-tiles{gap:10px}.p2p-tile{padding:18px!important}}
+    @media(max-width:640px){body{padding-top:118px}.p2p-bar{height:118px;padding:15px 5%;flex-direction:column;align-items:flex-start;gap:9px}.p2p-brand{font-size:20px}.p2p-mark{width:31px;height:31px}.p2p-menu{width:100%;justify-content:space-between}.p2p-menu button{font-size:12px;padding:9px 12px}.p2p-home{padding:32px 6%}.p2p-hero{grid-template-columns:1fr}.p2p-home h1{font-size:49px;letter-spacing:-1.8px}.p2p-intro{font-size:15px}.p2p-art{min-height:280px;margin-top:5px;border-radius:70px 70px 16px 16px}.p2p-receipt{width:190px;padding:21px}.p2p-paper-row{padding:12px 0}.p2p-plate{width:210px;height:210px}.p2p-seal{right:16px;bottom:16px;font-size:11px}.p2p-section-title{margin-top:32px}.p2p-section-title span{display:none}.p2p-tiles{grid-template-columns:1fr}.p2p-number{margin-bottom:12px}.p2p-bottom{flex-direction:column;gap:8px}.main{padding:20px 5%}.top-actions{flex-wrap:wrap}.card-head{flex-wrap:wrap}.ai-box{grid-template-columns:1fr}.p2p-actions{gap:10px}.p2p-actions button{flex:1;white-space:nowrap}.table{display:block;overflow-x:auto}.sidebar{top:118px}}
+    @media(prefers-reduced-motion:reduce){.p2p-tile{transition:none}}
+    /* Garnish signature layer */
+    body{background:#07111e!important}
+    .p2p-bar{background:#081521f5!important;border-bottom:1px solid #203246!important;color:#e8edf2!important}
+    .p2p-brand{font-family:Georgia,serif;font-size:25px;letter-spacing:-.4px;color:#e8edf2!important}
+    .p2p-menu button{color:#9eb0c2!important}
+    .p2p-menu button[aria-current=page]{background:#12253a!important;color:#f4c76a!important}
+    .p2p-home{max-width:1320px;background:#07111e!important}
+    .p2p-eyebrow{color:#f4c76a!important}
+    .p2p-home h1{color:#e8edf2!important;font-size:clamp(48px,6vw,82px)!important;line-height:.98!important}
+    .p2p-home h1 em{color:#f4c76a!important}
+    .p2p-intro,.p2p-helper,.p2p-section-title span,.p2p-bottom{color:#86a79a!important}
+    .p2p-art{background:#0c1827!important;border-radius:26px!important}
+    .p2p-receipt{background:#101f30!important;color:#e8edf2!important}
+    .p2p-paper-small{color:#86a79a!important}
+    .p2p-paper-row{border-color:#203246!important}
+    .p2p-paper-row span:last-child{color:#f4c76a!important}
+    .p2p-plate{background:#111f30!important;box-shadow:inset 0 0 0 13px #0c1827,inset 0 0 0 15px #203246!important}
+    .p2p-seal{background:#f4c76a!important;color:#0b1420!important;font-weight:800!important}
+    .p2p-primary{background:#f4c76a!important;border-color:#f4c76a!important;color:#0b1420!important}
+    .p2p-primary:hover{background:#ffd985!important;color:#0b1420!important}
+    .p2p-secondary{background:#13243a!important;border-color:#29405a!important;color:#e8edf2!important}
+    .p2p-tile{background:#0c1827!important;border-color:#203246!important;border-radius:18px!important;color:#e8edf2!important}
+    .p2p-tile:hover{border-color:#f4c76a!important;transform:translateY(-4px)!important}
+    .p2p-number{color:#f4c76a!important}
+    .sidebar{background:#081521!important;border-color:#203246!important}
+    .nav a.active,.nav a:hover{background:#12253a!important;color:#e8edf2!important}
+    .card{background:#0c1827!important;border-color:#203246!important;border-radius:18px!important;color:#e8edf2!important}
+  `;
+  document.head.append(style);
+  const bar = document.createElement('header');
+  bar.className = 'p2p-bar';
+  bar.innerHTML = `<div class="p2p-brand"><img src="/garnish-logo.svg" alt="Garnish Hospitality Intelligence" style="display:block;width:230px;max-width:42vw;height:auto"></div><nav class="p2p-menu" aria-label="Workspace"><button data-view="home">Home</button><button data-view="invoices">Invoices</button><button data-view="menu">Menu costing</button><button data-view="dashboard">Dashboard</button></nav>`;
+  const home = document.createElement('main');
+  home.className = 'p2p-home';
+  home.id = 'p2p-home';
+  home.innerHTML = `<section class="p2p-hero"><div><p class="p2p-eyebrow">Built from the sharp end of hospitality.</p><h1 tabindex="-1">See the margin.<br><em>Before it disappears.</em></h1><p class="p2p-intro">Garnish was shaped by real hospitality experience spanning Powerscourt's Gordon Ramsay operation, Marco Pierre White's Steakhouse and high-volume executive kitchen leadership. It brings invoices, recipes, Square, MYOB and labour into one commercial operating system, so you can see what is making money, what is quietly bleeding it, and where the next margin improvement is hiding.</p><div class="p2p-actions"><button class="p2p-primary" data-view="invoices">Upload invoices <span aria-hidden="true">↗</span></button><button class="p2p-secondary" data-view="dashboard">Open dashboard</button></div><p class="p2p-helper">PDFs and images · Up to 75 invoices per batch</p></div><div class="p2p-art" aria-hidden="true"><div class="p2p-plate"></div><div class="p2p-receipt"><div class="p2p-paper-title">Run the numbers before they run you.</div><div class="p2p-paper-small">Hospitality moves fast. Margin moves faster.</div><div class="p2p-paper-row"><span>Supplier invoices</span><span>01</span></div><div class="p2p-paper-row"><span>Ingredient costs</span><span>02</span></div><div class="p2p-paper-row"><span>Menu margins</span><span>03</span></div></div><div class="p2p-seal"><span>↗</span>Clarity for your next service</div></div></section><div class="p2p-section-title"><h2>The venues that see the numbers first get the chance to move first.</h2><span>One venue. One commercial picture.</span></div><section class="p2p-tiles" aria-label="Quick actions"><button class="p2p-tile" data-view="invoices"><span class="p2p-number">01 / PURCHASING</span><strong>Turn invoices into cost intelligence.</strong><p>Turn supplier invoices into live ingredient costs and spot price drift before it becomes the new normal.</p></button><button class="p2p-tile" data-view="menu"><span class="p2p-number">02 / MENU COSTING</span><strong>Know the margin on every plate.</strong><p>See the real portion cost, food-cost percentage and contribution behind every dish, using current supplier pricing.</p></button><button class="p2p-tile" data-view="dashboard"><span class="p2p-number">03 / THE BIG PICTURE</span><strong>See where profit disappears.</strong><p>Bring sales, purchasing, labour and accounting together so weak margin can no longer hide behind a busy dining room.</p></button></section><footer class="p2p-bottom"><span>Garnish · Built for the business behind hospitality.</span><span>Costs in focus. Food at heart.</span></footer>`;
+  const note = document.createElement('div');
+  note.className = 'p2p-note';
+  note.setAttribute('role', 'status');
+  document.body.prepend(bar, home);
+  document.body.append(note);
+  let noticeTimer;
+  function show(view, focus = true) {
+    const isHome = view === 'home';
+    home.hidden = !isHome;
+    shell.hidden = isHome;
+    bar.querySelectorAll('[data-view]').forEach(button => {
+      if (button.dataset.view === view) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
+    });
+
+    if (!isHome) {
+      const route = view === 'invoices' ? 'purchasing' : view === 'menu' ? 'menu-costing' : 'overview';
+      if (typeof window.P2P_ROUTE_GO === 'function') {
+        window.P2P_ROUTE_GO(route, true);
+      } else {
+        location.hash = '#'+route;
+      }
+    }
+
+    const target = isHome ? home.querySelector('h1') : document.getElementById(view === 'invoices' ? 'invoice-processing' : view === 'menu' ? 'menu-costing' : 'dashboard');
+    if (target && focus) {
+      target.setAttribute('tabindex', '-1');
+      target.focus({preventScroll:true});
+    }
+  }
+  [home, bar].forEach(root => root.addEventListener('click', event => {
+    const button = event.target.closest('button[data-view]');
+    if (button) show(button.dataset.view);
+  }));
+  show(location.hash ? 'dashboard' : 'home', false);
+})();
+
+// Turn the existing analysis controls into working, evidence-led actions.
+(() => {
+  'use strict';
+  if (location.origin !== 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev' || document.getElementById('p2p-ai-actions')) return;
+  const style = document.createElement('style'); style.id = 'p2p-ai-actions';
+  style.textContent = '.p2p-ai-result{margin-top:14px;padding:16px;border-radius:12px;background:#769a83;border:1px solid #52735f;color:#173526;white-space:pre-wrap;line-height:1.5}.p2p-ai-result strong{display:block;margin-bottom:6px}.p2p-ai-busy{opacity:.65;pointer-events:none}'; document.head.append(style);
+  const result = document.createElement('div'); result.className = 'p2p-ai-result'; result.hidden = true;
+  function text(value) { return String(value ?? '').replace(/[<>]/g, ''); }
+  function addResult(host, heading, data) {
+    const opportunities = Array.isArray(data?.opportunities) ? data.opportunities : [];
+    const lines = opportunities.slice(0, 8).map((item, index) => `${index + 1}. ${item.title || 'Opportunity'}\n${(item.why || '').trim()}\nActions: ${(Array.isArray(item.steps) ? item.steps : []).join('; ')}${item.estimated_saving != null ? `\nEstimated saving: ${item.estimated_saving}` : ''}`).join('\n\n');
+    result.innerHTML = `<strong>${text(heading)}</strong>${text(data?.summary || 'No recommendation was returned.')}\n\n${text(lines)}\n\nFollow-up: ${text(data?.measurement || 'Measure the change against the same period next week.')}`;
+    result.hidden = false; host.append(result.cloneNode(true));
+  }
+  async function ask(host, area, question, evidence) {
+    const button = host.querySelector('button'); button?.classList.add('p2p-ai-busy'); if (button) button.textContent = 'Thinking…';
+    try { const response = await fetch('/api/ai/advice', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,question,evidence:[{id:area+'-dashboard',text:evidence} ]})}); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'AI request failed'); addResult(host, area === 'labour' ? 'Labour saving opportunities' : 'Recommended next actions', data.advice || data); }
+    catch (error) { const message = document.createElement('div'); message.className='p2p-ai-result'; message.textContent = error.message; host.append(message); }
+    finally { if (button) { button.classList.remove('p2p-ai-busy'); button.textContent = area === 'labour' ? 'Find labour savings' : 'Ask'; } }
+  }
+  const aiBox = document.querySelector('.ai-box');
+  if (aiBox) { const input = aiBox.querySelector('input'); const button = aiBox.querySelector('button'); if (input && button) { button.addEventListener('click', () => ask(aiBox, 'profit', input.value, document.querySelector('.main')?.innerText.slice(0, 7000) || input.value)); } }
+  const labourHeading = [...document.querySelectorAll('h2')].find(node => /Labour by service/i.test(node.textContent || ''));
+  const labourHost = labourHeading?.closest('.card') || labourHeading?.parentElement;
+  if (labourHost) { const button = document.createElement('button'); button.className='btn primary'; button.type='button'; button.textContent='Find labour savings'; button.addEventListener('click', () => ask(labourHost, 'labour', 'Identify labour-saving methods while maintaining service, safety and Australian employment obligations.', labourHost.innerText.slice(0, 7000))); labourHost.querySelector('.card-head')?.append(button) || labourHost.prepend(button); }
+})();
+
+
+// Garnish action-plan control: turns the dashboard action into a visible, usable result.
+(() => {
+  'use strict';
+  if (location.origin !== 'https://second-service-profit-intelligence.craig-moloneyg.workers.dev' || document.getElementById('p2p-action-plan')) return;
+  const button = [...document.querySelectorAll('.top-actions button')].find((node) => /create action plan/i.test(node.textContent || ''));
+  const main = document.querySelector('.main');
+  if (!button || !main) return;
+  button.id = 'p2p-create-plan';
+  const panel = document.createElement('section');
+  panel.id = 'p2p-action-plan';
+  panel.className = 'card';
+  panel.style.cssText = 'margin-top:14px;border:2px solid #52735f;background:#769a83!important;color:#173526';
+  panel.hidden = true;
+  main.insertBefore(panel, main.firstElementChild?.nextElementSibling || main.firstChild);
+  const escape = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+  const steps = [
+    ['Today · Baseline', 'Confirm the current food cost, labour percentage, sales and waste numbers so the change can be measured.'],
+    ['Days 1–7 · Purchasing', 'Review the largest supplier price movements, check yields and set a receiving and invoice review routine.'],
+    ['Days 8–14 · Labour', 'Match rosters to demand by service, remove avoidable overlap and test one labour-saving change at a time.'],
+    ['Days 15–30 · Menu', 'Cost the highest-volume dishes, adjust portions or substitutes where the evidence supports it, and review pricing.'],
+    ['Days 31–90 · Measure', 'Track weekly food cost, labour, waste and gross profit; keep the changes that improve margin without hurting service.']
+  ];
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    button.textContent = 'Building plan…';
+    panel.hidden = false;
+    panel.innerHTML = '<div class="card-head"><div><h2>Action plan</h2><div class="muted">A general recovery checklist. Validate it against your workspace records.</div></div><span class="pill orange">Draft</span></div><div class="plan">' +
+      steps.map((step) => '<div class="plan-step"><strong>' + escape(step[0]) + '</strong><p>' + escape(step[1]) + '</p></div>').join('') +
+      '</div><p class="muted" id="p2p-plan-status" style="margin:14px 0 0">Preparing your saved plan…</p>';
+    panel.scrollIntoView({behavior:'smooth', block:'start'});
+    try {
+      const response = await fetch('/api/action-plans', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          title: 'Garnish profit recovery plan',
+          focus: 'food cost, labour alignment, purchasing controls and menu margin',
+          steps: steps.map(([title,detail])=>({title,detail})),
+          evidence: (main.innerText || '').slice(0, 9000)
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save the plan');
+      const status = document.getElementById('p2p-plan-status');
+      if (status) status.textContent = data.saved === false ? 'Plan is ready on this device. Connect the database to save it for future sessions.' : 'Plan saved. Use the steps above as the checklist for the next 90 days.';
+      panel.querySelector('.pill').textContent = data.saved === false ? 'Ready' : 'Saved';
+    } catch (error) {
+      const status = document.getElementById('p2p-plan-status');
+      if (status) status.textContent = 'Plan is ready to use. Press Create action plan again to retry saving.';
+      panel.querySelector('.pill').textContent = 'Ready';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Create action plan';
+    }
+  });
+})();
+
+(() => {
+  if(document.getElementById('p2p-complete-controls'))return;
+  const marker=document.createElement('style');marker.id='p2p-complete-controls';marker.textContent='.p2p-ai-result{grid-column:1/-1} .p2p-help{margin-top:12px} [id]{scroll-margin-top:140px}';document.head.append(marker);
+  const main=document.querySelector('.main');if(!main)return;
+  const report=[...document.querySelectorAll('button')].find(b=>/^Export report$/i.test(b.textContent.trim()));
+  if(report)report.addEventListener('click',async()=>{
+    report.disabled=true;report.textContent='Preparing report…';
+    let note=document.getElementById('p2p-export-status');if(!note){note=document.createElement('p');note.id='p2p-export-status';note.setAttribute('role','status');document.querySelector('.topbar').after(note);}
+    try{const response=await fetch('/api/report');if(!response.ok)throw new Error('The report could not be prepared. Please retry.');await response.text();const link=document.createElement('a');link.href='/api/report';link.textContent='Download your report (.txt)';link.download='Price-2-Plate-report.txt';note.replaceChildren(link);link.click();}catch(e){note.textContent=e.message;}finally{report.disabled=false;report.textContent='Export report';}
+  });
+  let info=document.getElementById('workspace-info');if(!info){info=document.createElement('section');info.id='workspace-info';info.className='card';info.style.marginTop='14px';info.innerHTML='<h2>Your private workspace</h2><p>Records added here belong to this device’s workspace. Fresh installations start empty. Keep this app’s data to retain access. Cross-device sign-in is not configured yet.</p>';main.append(info);}
+  const prompts=[
+    ['Supplier intelligence','purchasing','Which ingredients should I compare against cheaper equivalent products? Use my invoice prices and identify missing quotes, pack sizes and quality checks.'],
+    ['Live Menu Costing','menu','Review my saved recipes for portion quantity changes, ingredient alternatives and margin improvements. Explain the quality and yield trade-offs and use only my recorded prices.'],
+    ['Labour by service','labour','Suggest labour-saving methods: stagger starts and finishes at quieter times, reduce unnecessary overlap, improve prep and station workflows. Explain what hourly sales and roster data are needed to quantify savings.'],
+    ['Priority profit leaks','profit','Help identify my largest profit leaks and propose measurable corrective actions. If I have no sales or labour records, tell me what I need to collect.']
+  ];
+  for(const [heading,area,prompt] of prompts){const h=[...document.querySelectorAll('h2')].find(n=>n.textContent===heading);const host=h?.closest('.card');if(!host)continue;
+    if(area==='labour')for(const b of host.querySelectorAll('button'))if(b.textContent==='Find labour savings')b.remove();
+    const button=document.createElement('button');button.type='button';button.className='btn p2p-help';button.textContent=area==='labour'?'Find labour savings':'Ask the Analyst about this';
+    const output=document.createElement('div');output.className='p2p-ai-result';output.hidden=true;output.setAttribute('role','status');host.append(button,output);
+    button.addEventListener('click',async()=>{button.disabled=true;output.hidden=false;output.textContent='Reviewing your workspace…';try{const response=await fetch('/api/ai/advice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,question:prompt})});const result=await response.json();if(!response.ok)throw new Error(result.error||'The analyst could not answer.');output.textContent=result.advice.summary;}catch(e){output.textContent=e.message;}finally{button.disabled=false;}});
+  }
+})();
+
+
 
 (()=>{const a=document.getElementById("barAnalystBtn"),s=document.getElementById("barStockBtn"),o=document.getElementById("barResult");if(!a||!o)return;a.onclick=async()=>{a.disabled=true;a.textContent="Thinking…";o.hidden=false;o.textContent="Reviewing bar margins and labour opportunities…";try{const r=await fetch("/api/ai/advice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({area:"bar",question:"Identify bar profit leaks, cheaper equivalent products, pour-size controls, wastage reduction, stocktake improvements and bar labour-saving methods. Use only my workspace facts and label general methods clearly."})}),d=await r.json();if(!r.ok)throw Error(d.error||"The Analyst could not answer.");o.textContent=d.advice?.summary||"No recommendation returned."}catch(e){o.textContent=e.message}finally{a.disabled=false;a.textContent="Ask the Analyst about the bar"}};s.onclick=()=>{o.hidden=false;o.textContent="Bar stocktake checklist: count sealed stock, record open-bottle levels, measure high-value spirits, reconcile pours to sales, and record breakage or wastage. Add bar invoices to begin costing."}})();

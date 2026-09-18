@@ -1,0 +1,20 @@
+# Allow Cloudflare Builds to deploy from the repository root as well as cloudflare/.
+name = "second-service-profit-intelligence"
+main = "cloudflare/square-worker.mjs"
+preview_urls = false
+compatibility_date = "2026-09-13"
+keep_vars = true
+
+[vars]
+SQUARE_APPLICATION_ID = "sq0idp-AoYcPwCZmD4XTEafx3XGIg"
+SQUARE_ENVIRONMENT = "production"
+
+[assets]
+directory = "./cloudflare/public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "second-service-db"
+database_id = "d53e2902-bc5c-4bee-8489-02815bcfddcd"

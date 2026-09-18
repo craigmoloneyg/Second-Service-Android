@@ -1,3 +1,4 @@
+import {documentName,csvDocument,parseTable} from './document-input.mjs';
 const VERSION='2026-08-19';
 const enc=new TextEncoder(),dec=new TextDecoder();
 const json=(x,s=200,h={})=>new Response(JSON.stringify(x),{status:s,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...h}});
@@ -52,10 +53,19 @@ async function myobGet(env,row,path){
  return j;
 }
 async function extractDocumentWithAI(request,env,u){
- const filename=decodeURIComponent(request.headers.get('x-filename')||'document').replace(/[^\\w.\\- ()]/g,'_').slice(0,160);
+ const filename=documentName(request.headers.get('x-filename'));
  const mime=(request.headers.get('content-type')||'application/octet-stream').split(';')[0];
  const body=await request.arrayBuffer();
  if(!body.byteLength||body.byteLength>20000000)return json({error:'Document must be under 20 MB.'},413);
+ const extension=filename.split('.').pop().toLowerCase();
+ if(!['csv','txt','json','pdf','doc','docx','xls','xlsx','rtf','odt','ods'].includes(extension))return json({error:'Use Word, Excel, CSV, PDF, text, JSON, RTF or OpenDocument. Export Google Docs as Word and Sheets as Excel or CSV.'},415);
+ if(extension==='csv'){
+  let extracted;try{extracted=csvDocument(dec.decode(body),filename);}catch(err){return json({error:err.message},400);}
+  const id=crypto.randomUUID(),now=new Date().toISOString();
+  if(JSON.stringify(extracted).length>1500000)return json({error:'Split this CSV into smaller files. No rows have been imported.'},413);
+  await env.DB.prepare('INSERT INTO garnish_document_imports(id,account_id,filename,mime_type,imported_at,extracted) VALUES(?,?,?,?,?,?)').bind(id,u.id,filename,mime,now,JSON.stringify(extracted)).run();
+  return json({ok:true,id,filename,imported_at:now,extracted},201);
+ }
  if(!env.OPENAI_API_KEY)return json({error:'Document AI is not configured.'},503);
  const form=new FormData();
  form.append('purpose','user_data');
@@ -81,7 +91,9 @@ async function extractDocumentWithAI(request,env,u){
   if(!rr.ok)throw new Error(rj?.error?.message||'AI document extraction failed.');
   const out=(rj.output||[]).flatMap(x=>x.content||[]).find(x=>x.type==='output_text')?.text;
   if(!out)throw new Error('AI returned no document data.');
+  if(rj.status==='incomplete')throw new Error('This document is too large to extract completely. Split it into smaller files and retry. Nothing was saved.');
   const extracted=JSON.parse(out),id=crypto.randomUUID(),now=new Date().toISOString();
+  if(['xls','xlsx','ods'].includes(extension))extracted.warnings.push('AI spreadsheet extraction may not include every row or embedded chart. For complete accounting rows, export each sheet as CSV.');
   await env.DB.prepare('INSERT INTO garnish_document_imports(id,account_id,filename,mime_type,imported_at,extracted) VALUES(?,?,?,?,?,?)').bind(id,u.id,filename,mime,now,JSON.stringify(extracted)).run();
   return json({ok:true,id,filename,imported_at:now,extracted},201);
  }finally{
@@ -154,7 +166,7 @@ export async function handleCommercial(request,env){const url=new URL(request.ur
   return json({ok:true,id,created_at:now},201);
  }
  if(url.pathname==='/api/documents/import'&&request.method==='POST')return extractDocumentWithAI(request,env,u);
- if(url.pathname==='/api/documents'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT id,filename,mime_type,imported_at,extracted FROM garnish_document_imports WHERE account_id=? ORDER BY imported_at DESC LIMIT 30').bind(u.id).all();return json({documents:results.map(r=>({...r,extracted:JSON.parse(r.extracted)}))});}
+ if(url.pathname==='/api/documents/list'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT id,filename,mime_type,imported_at,extracted FROM garnish_document_imports WHERE account_id=? ORDER BY imported_at DESC LIMIT 30').bind(u.id).all();return json({documents:results.map(r=>({...r,extracted:JSON.parse(r.extracted)}))});}
  if(url.pathname==='/api/myob/import'&&request.method==='POST'){
   if(!e.active)return json({error:'Your Garnish subscription is inactive.'},403);
   const filename=decodeURIComponent(request.headers.get('x-filename')||'MYOB-export.csv').slice(0,160);
@@ -163,7 +175,7 @@ export async function handleCommercial(request,env){const url=new URL(request.ur
   const raw=await request.text();
   if(!raw||raw.length>1500000)return json({error:'MYOB export must be a text, CSV or JSON file under 1.5 MB.'},413);
   let parsed;
-  try{parsed=type.includes('json')||filename.toLowerCase().endsWith('.json')?JSON.parse(raw):parseCsvText(raw);}catch{return json({error:'The MYOB export could not be read. Export it as CSV or JSON and try again.'},400);}
+  try{if(type.includes('json')||filename.toLowerCase().endsWith('.json'))parsed=JSON.parse(raw);else{const t=parseTable(raw);parsed={headers:t.headers,rows:t.rows.map(r=>Object.fromEntries(t.headers.map((h,i)=>[h,r[i]])))};}}catch(error){return json({error:error.message||'The export could not be read.'},400);}
   const id=crypto.randomUUID(),now=new Date().toISOString(),snapshot={kind,filename,imported_at:now,data:parsed};
   await env.DB.prepare('INSERT INTO p2p_myob_imports(id,account_id,kind,filename,imported_at,snapshot) VALUES(?,?,?,?,?,?)').bind(id,u.id,kind,filename,now,JSON.stringify(parsed)).run();
   return json({ok:true,id,kind,filename,imported_at:now,rows:Array.isArray(parsed?.rows)?parsed.rows.length:null},201);

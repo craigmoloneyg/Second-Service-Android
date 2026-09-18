@@ -415,7 +415,14 @@ export async function api(request,env,extractInvoice,deriveBaseCost,outputText) 
           }))
         }));
 
+      let documents=[];
+      if(auth){
+        try{const {results=[]}=await env.DB.prepare('SELECT filename,imported_at,extracted FROM garnish_document_imports WHERE account_id=? ORDER BY imported_at DESC LIMIT 10').bind(auth.id).all();
+          documents=results.map(r=>{const e=JSON.parse(r.extracted);return {filename:r.filename,imported_at:r.imported_at,...e,tables:(e.tables||[]).map(t=>({...t,total_rows:t.rows.length,rows:t.rows.slice(0,100),sampled:t.rows.length>100}))};});
+        }catch{}
+      }
       const analystContext={
+        documents,
         question,
         area:String(body.area||'profit'),
         invoice_count:(data.invoices||[]).length,

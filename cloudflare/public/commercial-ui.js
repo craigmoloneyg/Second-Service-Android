@@ -30,7 +30,9 @@ function add(){
           <button class="btn primary" id="documentImportBtn" type="button">Read with Garnish AI</button>
         </div>
         <div class="muted" style="margin-top:8px">Google Docs and Google Sheets work when downloaded from Google as Word, Excel, PDF or CSV.</div>
-        <div id="documentImportMsg" class="muted" style="margin-top:10px"></div>
+        <div class="muted" style="margin-top:8px">Up to 50 files, 20 MB each. CSV rows are preserved exactly, including headerless accountant ledgers. For complete Excel accounting data, export each sheet as CSV.</div>
+        <button class="btn" id="documentHistoryBtn" type="button" style="margin-top:10px">Show saved documents</button>
+        <div id="documentImportMsg" class="muted" role="status" style="margin-top:10px"></div>
         <div id="documentImportResults" style="margin-top:12px"></div>
       </div>
 
@@ -171,13 +173,27 @@ async function status(){
   loadImports();
 }
 
+function renderDocument(x){
+  const e=x.extracted||{},card=document.createElement('article');card.className='card';card.style.marginTop='12px';
+  card.innerHTML='<div class="kicker">'+esc(e.document_type||'Document')+'</div><h3>'+esc(e.title||x.filename)+'</h3><p>'+esc(e.summary||'Saved')+'</p>'+
+    '<ul>'+(e.key_facts||[]).map(v=>'<li>'+esc(v)+'</li>').join('')+'</ul>'+
+    (e.financial_data||[]).map(v=>'<p><strong>'+esc(v.label)+'</strong>: '+esc(v.value)+' '+esc(v.period||'')+'</p>').join('')+
+    (e.warnings||[]).map(v=>'<p class="document-warning">'+esc(v)+'</p>').join('');
+  for(const table of e.tables||[]){
+    const detail=document.createElement('details');detail.innerHTML='<summary>'+esc(table.name)+' · '+(table.rows||[]).length+' rows</summary><div class="document-table-scroll"><table class="table"><thead><tr>'+(table.headers||[]).map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+(table.rows||[]).map(row=>'<tr>'+row.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';card.append(detail);
+  }
+  $('documentImportResults').append(card);
+}
 function bind(){
+  if($('documentHistoryBtn'))$('documentHistoryBtn').onclick=async()=>{
+    try{const x=await api('/api/documents/list');$('documentImportResults').innerHTML='';for(const d of x.documents||[])renderDocument(d);$('documentImportMsg').textContent=(x.documents||[]).length+' saved documents shown.';}catch(e){$('documentImportMsg').textContent=e.message;}
+  };
   if($('documentImportBtn')&&!$('documentImportBtn').dataset.ready){
     $('documentImportBtn').dataset.ready='1';
     $('documentImportBtn').onclick=async()=>{
       const files=[...($('documentImportFile').files||[])],msg=$('documentImportMsg'),out=$('documentImportResults');
       if(!files.length){msg.textContent='Choose one or more files first.';return;}
-      if(files.length>20){msg.textContent='Choose up to 20 files at a time.';return;}
+      if(files.length>50){msg.textContent='Choose up to 50 files at a time.';return;}
       $('documentImportBtn').disabled=true;out.innerHTML='';
       let ok=0,failed=0;
       try{
@@ -188,10 +204,7 @@ function bind(){
             const rr=await fetch('/api/documents/import',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});
             const x=await rr.json();if(!rr.ok)throw new Error(x.error||'Document extraction failed.');
             ok++;
-            const e=x.extracted||{};
-            const facts=(e.key_facts||[]).slice(0,8).map(v=>'<li>'+esc(v)+'</li>').join('');
-            const money=(e.financial_data||[]).slice(0,10).map(v=>'<div class="evidence"><strong>'+esc(v.label)+'</strong> · '+esc(v.value)+(v.period?' · '+esc(v.period):'')+'</div>').join('');
-            out.innerHTML+='<div class="card" style="margin-top:10px"><div class="kicker">'+esc(e.document_type||'Document')+'</div><h3>'+esc(e.title||x.filename)+'</h3><p class="muted">'+esc(e.summary||'Extracted successfully.')+'</p>'+(facts?'<ul>'+facts+'</ul>':'')+money+'</div>';
+            renderDocument(x);
           }catch(err){
             failed++;out.innerHTML+='<div class="evidence" style="margin-top:8px">'+esc(file.name)+' · '+esc(err.message)+'</div>';
           }
