@@ -79,7 +79,7 @@
       if (button.dataset.view === view) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
     });
 
-    if (!isHome) {
+    if (!isHome && focus) {
       const route = view === 'invoices' ? 'purchasing' : view === 'menu' ? 'menu-costing' : 'overview';
       if (typeof window.P2P_ROUTE_GO === 'function') {
         window.P2P_ROUTE_GO(route, true);

@@ -1,5 +1,6 @@
 (()=>{
 const routes={
+  team:{title:'Staff',subtitle:'Staff sign-ins, clocked hours and access.'},
   accounting:{title:'Accounting',subtitle:'Your books, GST working papers and recorded wages in Garnish.'},
   overview:{title:'Overview',subtitle:'Your commercial control room: revenue, costs, margin and the signals that matter first.'},
   'profit-recovery':{title:'Profit recovery',subtitle:'Find the profit leaks worth fixing first, backed by your own trading evidence.'},
@@ -14,7 +15,7 @@ const routes={
   workspace:{title:'Workspace',subtitle:'Connect the systems powering Garnish: account, Square, MYOB, billing and venue data.'}
 };
 const map={
-  'accounting-panel':'accounting',accounting:'accounting',overview:'overview','profit-recovery':'profit-recovery',
+  'team-panel':'team',team:'team','accounting-panel':'accounting',accounting:'accounting',overview:'overview','profit-recovery':'profit-recovery',
   'invoice-processing':'purchasing','supplier-intelligence':'purchasing','inventory-panel':'purchasing','inventory-panel':'purchasing',purchasing:'purchasing',
   labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst',
   square:'square','square-pos':'square','live-consultant':'consultant','consultant-admin-panel':'consultant-admin','workspace-info':'workspace','account-panel':'workspace','commercial-settings':'workspace'
@@ -38,7 +39,7 @@ function routeFor(el){
 }
 function moveKnown(){
   const places={
-    'accounting-panel':'accounting','invoice-processing':'purchasing','supplier-intelligence':'purchasing',
+    'team-panel':'team','accounting-panel':'accounting','invoice-processing':'purchasing','supplier-intelligence':'purchasing',
     'menu-costing':'menu-costing','square-pos':'square','live-consultant':'consultant','consultant-admin-panel':'consultant-admin','account-panel':'workspace','commercial-settings':'workspace'
   };
   for(const [id,r] of Object.entries(places)){
@@ -107,6 +108,7 @@ function build(){
   if(nav&&!nav.querySelector('a[href="#accounting"]')){
     const a=document.createElement('a');a.href='#accounting';a.textContent='Accounting';nav.appendChild(a);
   }
+  if(nav&&!nav.querySelector('a[href="#team"]')){const a=document.createElement('a');a.href='#team';a.textContent='Staff';nav.appendChild(a);}
   moveKnown();
   let initial=(location.hash||'#overview').slice(1);
   initial=map[initial]||initial;if(!routes[initial])initial='overview';
