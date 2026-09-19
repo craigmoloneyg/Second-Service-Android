@@ -61,6 +61,7 @@ function build(){
  <div class="acc-actions"><button type="button" id="acc-reload">Refresh account</button><button type="button" id="acc-export">Export complete book</button></div>
  <p id="acc-status" role="status" aria-live="polite"></p>
  <div class="acc-note">First release: cash-basis GST working papers and recorded wage payments. Automatic PAYG, award interpretation, leave accrual, tax returns, BAS/STP submission and payments are not enabled.</div>
+ <div id="acc-getting-started" class="acc-note" hidden><strong>Start here</strong><ol><li>Save your business details below.</li><li>Add a sale or purchase, or review an invoice already in Garnish.</li><li>Open Reports & BAS to see the totals.</li></ol></div>
  <div class="acc-tabs" role="tablist" aria-label="Accounting views">${[['summary','Reports & BAS'],['transactions','Sales & purchases'],['payroll','Wages'],['settings','Business settings']].map(([id,label])=>`<button type="button" role="tab" id="acc-tab-${id}" aria-controls="acc-${id}" aria-selected="${id==='summary'}" data-tab="${id}">${label}</button>`).join('')}</div>
  <div id="acc-summary" role="tabpanel" aria-labelledby="acc-tab-summary">
  <form id="acc-report-form"><div class="acc-grid">${field('From','start','date','required')}${field('To','end','date','required')}</div><button type="submit">Update reports</button></form><div id="acc-report"></div></div>
@@ -103,7 +104,7 @@ function build(){
  root.querySelector('.acc-tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;const tabs=[...root.querySelectorAll('[data-tab]')];const index=tabs.indexOf(document.activeElement);if(index<0)return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;tabs[next].focus();tabs[next].click();});
  $('acc-reload').onclick=load;$('acc-add-transaction-line').onclick=()=>$('acc-transaction-lines').insertAdjacentHTML('beforeend',transactionLine());
  $('acc-add-pay-line').onclick=()=>$('acc-payroll-lines').insertAdjacentHTML('beforeend',earningsLine());
- $('acc-settings-form').onsubmit=async e=>{e.preventDefault();const input=fields(e.target);if(!['true','false'].includes(input.gst_registered))return message('Choose GST registration status.',true);input.gst_registered=input.gst_registered==='true';await save('settings',input);};
+ $('acc-settings-form').onsubmit=async e=>{e.preventDefault();const firstSetup=!book?.settings;const input=fields(e.target);if(!['true','false'].includes(input.gst_registered))return message('Choose GST registration status.',true);input.gst_registered=input.gst_registered==='true';if(await save('settings',input)){if(firstSetup){root.querySelector('[data-tab="transactions"]').click();message('Business details saved. Add your first sale or purchase below, or choose an existing invoice.');}}};
  const lines=id=>[...$(id).children].map(row=>Object.fromEntries([...row.querySelectorAll('input,select')].map(x=>[x.name,x.value])));
  $('acc-transaction-form').onsubmit=async e=>{e.preventDefault();const input={...fields(e.target),lines:lines('acc-transaction-lines'),credit_confirmed:e.target.elements.credit_confirmed.checked};if(await save('transaction',input)){e.target.reset();$('acc-transaction-lines').innerHTML=transactionLine();e.target.elements.date.value=today();}};
  const payInput=()=>({...fields($('acc-payroll-form')),lines:lines('acc-payroll-lines'),verified:$('acc-payroll-form').elements.verified.checked});
@@ -120,7 +121,9 @@ async function load(){
  try{const data=await api('state');book=data.book;revision=data.revision;const f=$('acc-settings-form');if(book.settings){for(const [key,value] of Object.entries(book.settings))if(f.elements[key])f.elements[key].value=String(value);f.elements.reserve_percent.value=book.settings.reserve_bps==null?'':decimal(book.settings.reserve_bps);}
  $('acc-transactions-list').innerHTML=table(['Date','Reference','Contact','Type','Total','GST','Payment','Correction'],book.transactions.map(t=>[esc(t.date),esc(t.reference),esc(t.contact),esc(t.kind.replaceAll('_',' ')),money(t.gross),money(t.gst),t.paid_date?esc(t.paid_date):t.reversed_by||t.reversal_of?'Reversed':`<button type="button" data-mutate data-settle="${esc(t.id)}">Mark paid</button>`,t.reversed_by?'Reversed':t.reversal_of?'Reversal':`<button type="button" data-mutate data-collection="transactions" data-reverse="${esc(t.id)}">Reverse</button>`]));
  $('acc-payroll-list').innerHTML=table(['Paid','Employee','Reference','Gross','PAYG','Net','Super','Correction'],book.payroll.map(p=>[esc(p.paid_date),esc(p.employee),esc(p.reference),money(p.gross),money(p.payg),money(p.net),money(p.super),p.reversed_by?'Reversed':p.reversal_of?'Reversal':`<button type="button" data-mutate data-collection="payroll" data-reverse="${esc(p.id)}">Reverse</button>`]));
- await refreshReport();message(book.settings?'Accounting book loaded.':'Save Business settings to start your accounting book.');
+ $('acc-getting-started').hidden=Boolean(book.settings);
+ if(!book.settings)root.querySelector('[data-tab="settings"]').click();
+ await refreshReport();message(book.settings?'Accounting book loaded.':'Step 1: save your business details below.');
  }catch(e){book=null;currentReport=null;$('acc-report').textContent='';$('acc-transactions-list').textContent='';$('acc-payroll-list').textContent='';message(e.message,true);}
 }
 async function refreshReport(){
@@ -130,9 +133,9 @@ async function refreshReport(){
  ${table(['Label','Description','Amount'],[['G1','Sales including GST',money(r.bas.G1)],['1A','GST collected',money(r.bas['1A'])],['1B','Eligible GST credits recorded',money(r.bas['1B'])],['','GST collected less credits',money(r.bas.gst_net)],['W1','Ordinary wage payments recorded',money(r.bas.W1)],['W2','PAYG withholding recorded',money(r.bas.W2)]])}
  <div class="acc-note">These are working figures, not a completed or lodged BAS. Review adjustments and other applicable BAS labels before reporting.</div>
  <details><summary>Report coverage</summary><ul>${r.limitations.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>
- <h3>Trial balance at ${esc(end)}</h3><p>${r.trial_balance_difference===0?'Debits and credits balance. This checks arithmetic, not completeness.':'Ledger difference: '+money(r.trial_balance_difference)}</p>
+ <details><summary>Detailed accounts and trial balance</summary><h3>Trial balance at ${esc(end)}</h3><p>${r.trial_balance_difference===0?'Debits and credits balance. This checks arithmetic, not completeness.':'Ledger difference: '+money(r.trial_balance_difference)}</p>
  ${table(['Account','Debit','Credit'],r.accounts.filter(a=>a.balance).map(a=>[esc(a.name),money(Math.max(0,a.balance)),money(Math.max(0,-a.balance))]))}
- <div class="acc-actions"><button type="button" id="acc-ledger-export">Export period journal CSV</button></div>`;
+ <div class="acc-actions"><button type="button" id="acc-ledger-export">Export period journal CSV</button></div></details>`;
  $('acc-ledger-export').onclick=()=>{const rows=[['Date','Reference','Account','Debit AUD','Credit AUD'],...r.journal.map(x=>[x.date,x.description,x.account,decimal(x.debit),decimal(x.credit)])];download('Garnish-journal-'+start+'-'+end+'.csv',rows.map(row=>row.map(csv).join(',')).join('\r\n'),'text/csv');};
  }catch(e){currentReport=null;$('acc-report').textContent='';message(e.message,true);}
 }

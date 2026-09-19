@@ -18,10 +18,14 @@ test('Accounting route loads, submits settings and clears private figures after 
  w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
  for(let i=0;i<8;i++)await tick();
  assert.ok(w.document.querySelector('[data-page=accounting].active #accounting-panel'));
+ assert.equal(w.document.getElementById('acc-settings').hidden,false);
+ assert.equal(w.document.getElementById('acc-getting-started').hidden,false);
  w.document.querySelector('[data-tab=settings]').click();
  const f=w.document.getElementById('acc-settings-form');f.elements.business_name.value='Test Venue';f.elements.gst_registered.value='true';f.elements.reserve_percent.value='15';
  f.dispatchEvent(new w.Event('submit',{cancelable:true}));for(let i=0;i<8;i++)await tick();
  assert.equal(saved.action,'settings');assert.equal(saved.input.gst_registered,true);assert.equal(saved.input.reserve_percent,'15');assert.ok(saved.request_id);
+ assert.equal(w.document.getElementById('acc-transactions').hidden,false);
+ assert.equal(w.document.getElementById('acc-getting-started').hidden,true);
  assert.match(w.document.getElementById('acc-report').textContent,/110\.00/);
  await w.fetch('/api/auth/signout',{method:'POST'});
  assert.equal(w.document.getElementById('acc-report').textContent,'');assert.match(w.document.getElementById('acc-status').textContent,/Sign in/);observers.forEach(o=>o.disconnect());dom.window.close();
