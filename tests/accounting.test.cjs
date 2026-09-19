@@ -60,3 +60,16 @@ test('existing accounts cannot be claimed through signup after sessions expire',
 test('signout revokes the stored session, not just the browser cookie',async()=>{
  const env=storage();const {default:worker}=await import('../cloudflare/square-worker.mjs');const response=await worker.fetch(new Request('https://garnish.test/api/auth/signout',{method:'POST',headers:{origin:'https://garnish.test',cookie:'p2p_auth='+'a'.repeat(64)}}),env,{});assert.equal(response.status,200);assert.equal(env.db.prepare('SELECT COUNT(*) n FROM garnish_sessions_v2 WHERE account_id=?').get('a').n,0);env.db.close();
 });
+
+test('automatic standard GST is recomputed server-side with exact cents and explicit classification',async()=>{
+ const c=await core;
+ const make=(gross,tax_code='taxable',extra={})=>c.transaction({...purchase,lines:[{description:'Goods',gross,gst:'999',gst_mode:'auto',tax_code,...extra}]},config);
+ assert.equal(make('110').gst,1000);assert.equal(make('0.05').gst,0);assert.equal(make('0.06').gst,1);
+ assert.equal(make('19.99').gst,182);assert.equal(make('110','gst_free').gst,0);
+ assert.throws(()=>make('110',''));assert.throws(()=>make('110','taxable',{gst_mode:'guess'}));
+ assert.equal(make('110','taxable',{gst_mode:'invoice',gst:'9.99'}).gst,999);
+ assert.throws(()=>c.transaction({...purchase,credit_confirmed:false,lines:[{description:'Goods',gross:'110',tax_code:'taxable',gst_mode:'auto'}]},config));
+ assert.throws(()=>c.transaction({...purchase,lines:[{description:'Goods',gross:'110',tax_code:'taxable',gst_mode:'auto'}]},{...config,gst_registered:false}));
+ const book=c.emptyBook();book.settings=config;book.transactions.push({...make('110'),id:'auto'});
+ assert.equal(c.report(book,'2026-10-01','2026-10-31').bas['1B'],1000);
+});

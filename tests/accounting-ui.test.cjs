@@ -27,6 +27,14 @@ test('Accounting route loads, submits settings and clears private figures after 
  assert.equal(w.document.getElementById('acc-transactions').hidden,false);
  assert.equal(w.document.getElementById('acc-getting-started').hidden,true);
  assert.match(w.document.getElementById('acc-report').textContent,/110\.00/);
+ const row=w.document.querySelector('#acc-transaction-lines .acc-line');
+ const gross=row.querySelector('[name=gross]'),code=row.querySelector('[name=tax_code]'),gst=row.querySelector('[name=gst]'),mode=row.querySelector('[name=gst_mode]');
+ assert.equal(code.value,'');gross.value='110';code.value='taxable';code.dispatchEvent(new w.Event('change',{bubbles:true}));
+ assert.equal(gst.value,'10.00');assert.equal(gst.readOnly,true);
+ mode.value='invoice';mode.dispatchEvent(new w.Event('change',{bubbles:true}));gst.value='9.99';gross.value='111';gross.dispatchEvent(new w.Event('input',{bubbles:true}));
+ assert.equal(gst.value,'9.99');assert.equal(gst.readOnly,false);
+ mode.value='auto';mode.dispatchEvent(new w.Event('change',{bubbles:true}));code.value='gst_free';code.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(gst.value,'0.00');
+ assert.match(w.document.getElementById('acc-report').textContent,/ATO lodgement: not connected/);
  await w.fetch('/api/auth/signout',{method:'POST'});
  assert.equal(w.document.getElementById('acc-report').textContent,'');assert.match(w.document.getElementById('acc-status').textContent,/Sign in/);observers.forEach(o=>o.disconnect());dom.window.close();
 });

@@ -33,7 +33,7 @@ async function save(action,input){
 }
 const field=(label,name,type='text',extra='')=>`<label>${label}<input name="${name}" type="${type}" ${extra}></label>`;
 const amount=(label,name,extra='')=>field(label,name,'number',`min="0" step="0.01" required ${extra}`);
-function transactionLine(){return `<div class="acc-line">${field('Description','description','text','required maxlength="160"')}${amount('Total including GST ($)','gross')}${amount('Actual GST ($)','gst','value="0"')}<label>Tax code<select name="tax_code"><option value="gst_free">GST-free</option><option value="taxable">Taxable</option><option value="input_taxed">Input-taxed</option><option value="out_of_scope">Out of scope</option><option value="unregistered">Not GST registered</option></select></label><button type="button" data-remove>Remove line</button></div>`;}
+function transactionLine(){return `<div class="acc-line">${field('Description','description','text','required maxlength="160"')}${amount('Total including GST ($)','gross')}${amount('GST ($)','gst','value="0" readonly')}<label>GST calculation<select name="gst_mode"><option value="auto">Automatic (standard 10%)</option><option value="invoice">Use invoice GST amount</option></select></label><label>Tax code<select name="tax_code" required><option value="">Choose tax treatment…</option><option value="gst_free">GST-free</option><option value="taxable">Taxable</option><option value="input_taxed">Input-taxed</option><option value="out_of_scope">Out of scope</option><option value="unregistered">Not GST registered</option></select></label><button type="button" data-remove>Remove line</button></div>`;}
 function earningsLine(){return `<div class="acc-line">${field('Earnings description','description','text','required placeholder="Ordinary hours / overtime / penalty hours"')}${amount('Hours','hours')}${amount('Actual hourly rate ($)','rate')}<button type="button" data-remove>Remove line</button></div>`;}
 function build(){
  if(document.getElementById('accounting-panel'))return;
@@ -46,7 +46,7 @@ function build(){
  #accounting-panel button:disabled{opacity:.55;cursor:wait}#accounting-panel label{display:grid;gap:5px;font-size:14px}
  #accounting-panel input,#accounting-panel select{width:100%;min-width:0;font:inherit;font-size:16px;padding:10px;border:1px solid #91ad9d;border-radius:7px;background:#fff;color:#163e30}
  .acc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:15px 0}
- .acc-line{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin:12px 0;padding:12px;border:1px solid var(--line,#b5cbbd);border-radius:8px}
+ .acc-line{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin:12px 0;padding:12px;border:1px solid var(--line,#b5cbbd);border-radius:8px}
  .acc-check{display:flex!important;align-items:flex-start;gap:10px!important;margin:16px 0}#accounting-panel input[type=checkbox]{width:auto;margin-top:4px}
  .acc-note{padding:12px 16px;border-left:3px solid #bd952e;background:rgba(189,149,46,.09);font-size:14px;margin:14px 0}
  .acc-error{color:#a82929!important}.acc-table{overflow:auto;max-height:480px}#accounting-panel table{width:100%;border-collapse:collapse;font-size:14px}
@@ -71,7 +71,7 @@ function build(){
  <label>Type<select name="kind"><option value="purchase">Supplier purchase</option><option value="sale">Customer sale</option><option value="purchase_refund">Supplier refund</option><option value="sale_refund">Customer refund</option></select></label>
  ${field('Supplier / customer','contact','text','required maxlength="160"')}${field('Unique document reference','reference','text','required maxlength="160"')}${field('Document date','date','date','required')}${field('Paid in full on (leave blank if unpaid)','paid_date','date')}
  <label>Purchase category<select name="category"><option value="food">Food & beverage purchases</option><option value="rent">Rent</option><option value="utilities">Utilities</option><option value="fees">Fees</option><option value="other">Other expenses</option><option value="equipment">Equipment asset</option></select></label></div>
- <p>Amounts are for the business portion only. Split mixed GST treatments into separate lines. Partial payments and deposits are not supported yet.</p>
+ <p>Choose the tax treatment for each line. Automatic GST uses one-eleventh of the GST-inclusive total, rounded to cents. For supplier invoices, check the GST shown and use the invoice amount if different. Amounts are for the business portion only. Split mixed GST treatments into separate lines. Partial payments and deposits are not supported yet.</p>
  <div id="acc-transaction-lines">${transactionLine()}</div><button type="button" id="acc-add-transaction-line">Add line</button>
  <label class="acc-check"><input type="checkbox" name="credit_confirmed">For any GST credit entered, I have checked business use, eligibility and the supporting tax invoice.</label>
  <button type="submit">Post transaction</button></form><h3>Transaction history</h3><div id="acc-transactions-list"></div></div>
@@ -94,6 +94,14 @@ function build(){
  const host=document.querySelector('[data-page="accounting"]')||document.querySelector('main');if(!host)return;host.appendChild(root);
  const d=today();const reportForm=$('acc-report-form');reportForm.elements.end.value=d;reportForm.elements.start.value=d.slice(0,8)+'01';
  $('acc-transaction-form').elements.date.value=d;
+ const updateGST=row=>{
+   const get=name=>row.querySelector('[name='+name+']');
+   if(!get('gst_mode'))return;
+   const automatic=get('gst_mode').value==='auto';get('gst').readOnly=automatic;
+   if(automatic){const raw=get('gross').value;const valid=/^\d{1,9}(\.\d{1,2})?$/.test(raw);const [whole,fraction='']=raw.split('.');const total=valid?Number(whole)*100+Number(fraction.padEnd(2,'0')):0;get('gst').value=decimal(get('tax_code').value==='taxable'?Math.floor((total+5)/11):0);}
+ };
+ root.addEventListener('input',e=>{const row=e.target.closest('#acc-transaction-lines .acc-line');if(row&&e.target.name!=='gst')updateGST(row);});
+ root.addEventListener('change',e=>{const row=e.target.closest('#acc-transaction-lines .acc-line');if(row)updateGST(row);});
  root.addEventListener('click',async e=>{
    const b=e.target.closest('button');if(!b)return;
    if(b.dataset.tab){root.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));['summary','transactions','payroll','settings'].forEach(id=>$('acc-'+id).hidden=id!==b.dataset.tab);}
@@ -112,7 +120,7 @@ function build(){
  $('acc-pay-preview').onclick=async()=>{try{const {preview:p}=await api('payroll-preview',payInput());$('acc-pay-result').innerHTML=`<div class="acc-grid">${metric('Gross',p.gross)}${metric('Net payment',p.net)}${metric('Employer super',p.super)}${metric('Employer cost',p.gross+p.super)}</div>`;}catch(e){message(e.message,true);}};
  $('acc-report-form').onsubmit=async e=>{e.preventDefault();await refreshReport();};
  $('acc-export').onclick=()=>{if(!book)return message('Sign in and refresh your accounting book first.',true);download('Garnish-accounting-'+today()+'.json',JSON.stringify({schema_version:1,exported_at:new Date().toISOString(),revision,book},null,2),'application/json');};
- $('acc-invoices').onclick=async()=>{try{const {invoices}=await api('invoices');$('acc-invoice-list').innerHTML='';if(!invoices.length)$('acc-invoice-list').textContent='No supplier invoices in this account workspace.';for(const invoice of invoices){const button=document.createElement('button');button.type='button';button.textContent=[invoice.contact,invoice.reference,invoice.total==null?'No total':money(Math.round(invoice.total*100))].filter(Boolean).join(' · ');button.onclick=()=>{const f=$('acc-transaction-form');f.elements.kind.value='purchase';f.elements.contact.value=invoice.contact||'';f.elements.reference.value=invoice.reference||'';f.elements.date.value=invoice.date||'';f.elements.paid_date.value='';f.elements.credit_confirmed.checked=false;$('acc-transaction-lines').innerHTML=transactionLine();const row=$('acc-transaction-lines');row.querySelector('[name=description]').value='Invoice total — review GST split';row.querySelector('[name=gross]').value=invoice.total??'';row.querySelector('[name=gst]').value=invoice.tax??'';row.querySelector('[name=tax_code]').value=Number(invoice.tax)>0?'taxable':'gst_free';message('Invoice copied for review. Check tax treatment and payment date before posting.');};$('acc-invoice-list').appendChild(button);}}catch(e){message(e.message,true);}};
+ $('acc-invoices').onclick=async()=>{try{const {invoices}=await api('invoices');$('acc-invoice-list').innerHTML='';if(!invoices.length)$('acc-invoice-list').textContent='No supplier invoices in this account workspace.';for(const invoice of invoices){const button=document.createElement('button');button.type='button';button.textContent=[invoice.contact,invoice.reference,invoice.total==null?'No total':money(Math.round(invoice.total*100))].filter(Boolean).join(' · ');button.onclick=()=>{const f=$('acc-transaction-form');f.elements.kind.value='purchase';f.elements.contact.value=invoice.contact||'';f.elements.reference.value=invoice.reference||'';f.elements.date.value=invoice.date||'';f.elements.paid_date.value='';f.elements.credit_confirmed.checked=false;$('acc-transaction-lines').innerHTML=transactionLine();const row=$('acc-transaction-lines');row.querySelector('[name=description]').value='Invoice total — review GST split';row.querySelector('[name=gross]').value=invoice.total??'';row.querySelector('[name=gst_mode]').value='invoice';row.querySelector('[name=gst]').readOnly=false;row.querySelector('[name=gst]').value=invoice.tax??'';row.querySelector('[name=tax_code]').value=Number(invoice.tax)>0?'taxable':'';message('Invoice copied for review. Check tax treatment and payment date before posting.');};$('acc-invoice-list').appendChild(button);}}catch(e){message(e.message,true);}};
  load();
 }
 function metric(label,value){return `<div class="acc-metric">${label}<strong>${money(value)}</strong></div>`;}
@@ -131,11 +139,16 @@ async function refreshReport(){
  $('acc-report').innerHTML=`<h3>Recorded activity</h3><div class="acc-grid">${metric('Sales excluding GST',r.revenue)}${metric('Recorded expenses',r.expenses)}${metric('Book profit before adjustments',r.profit)}${metric('Chosen profit reserve',r.tax_reserve)}${metric('Customers owe',r.receivables)}${metric('Unpaid purchases',r.payables)}</div>
  <h3>Cash-basis BAS working figures</h3><p>${book.settings?.gst_registered?'GST figures include recorded business transactions paid in this period.':'GST registration is not enabled. These figures are not a BAS.'} Wage figures include recorded payments only.</p>
  ${table(['Label','Description','Amount'],[['G1','Sales including GST',money(r.bas.G1)],['1A','GST collected',money(r.bas['1A'])],['1B','Eligible GST credits recorded',money(r.bas['1B'])],['','GST collected less credits',money(r.bas.gst_net)],['W1','Ordinary wage payments recorded',money(r.bas.W1)],['W2','PAYG withholding recorded',money(r.bas.W2)]])}
- <div class="acc-note">These are working figures, not a completed or lodged BAS. Review adjustments and other applicable BAS labels before reporting.</div>
+ <div class="acc-note"><strong>ATO lodgement: not connected</strong><p>These are working figures, not a completed or lodged BAS. Review adjustments and other applicable BAS labels before reporting. No information has been sent to the ATO.</p><p>Direct lodgement requires Garnish’s ATO registration, security assessment and production testing to be completed.</p></div>
+ <div class="acc-actions"><button type="button" id="acc-bas-export">Download BAS working figures</button></div>
  <details><summary>Report coverage</summary><ul>${r.limitations.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>
  <details><summary>Detailed accounts and trial balance</summary><h3>Trial balance at ${esc(end)}</h3><p>${r.trial_balance_difference===0?'Debits and credits balance. This checks arithmetic, not completeness.':'Ledger difference: '+money(r.trial_balance_difference)}</p>
  ${table(['Account','Debit','Credit'],r.accounts.filter(a=>a.balance).map(a=>[esc(a.name),money(Math.max(0,a.balance)),money(Math.max(0,-a.balance))]))}
  <div class="acc-actions"><button type="button" id="acc-ledger-export">Export period journal CSV</button></div></details>`;
+ $('acc-bas-export').onclick=()=>{
+ const rows=[['Garnish BAS working figures — NOT LODGED'],['Business',book.settings?.business_name||''],['From',start],['To',end],['Basis','Cash'],['Label','Amount AUD'],...['G1','1A','1B','W1','W2'].map(k=>[k,decimal(r.bas[k])]),['GST collected less credits',decimal(r.bas.gst_net)],['Coverage','Recorded transactions only. Review against your ATO activity statement.'],...r.limitations.map(x=>['Limitation',x])];
+ download('Garnish-BAS-working-figures-'+start+'-'+end+'.csv',rows.map(row=>row.map(csv).join(',')).join('\r\n'),'text/csv');
+ };
  $('acc-ledger-export').onclick=()=>{const rows=[['Date','Reference','Account','Debit AUD','Credit AUD'],...r.journal.map(x=>[x.date,x.description,x.account,decimal(x.debit),decimal(x.credit)])];download('Garnish-journal-'+start+'-'+end+'.csv',rows.map(row=>row.map(csv).join(',')).join('\r\n'),'text/csv');};
  }catch(e){currentReport=null;$('acc-report').textContent='';message(e.message,true);}
 }
