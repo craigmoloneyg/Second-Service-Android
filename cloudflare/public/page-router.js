@@ -1,5 +1,6 @@
 (()=>{
 const routes={
+  accounting:{title:'Accounting',subtitle:'Your books, GST working papers and recorded wages in Garnish.'},
   overview:{title:'Overview',subtitle:'Your commercial control room: revenue, costs, margin and the signals that matter first.'},
   'profit-recovery':{title:'Profit recovery',subtitle:'Find the profit leaks worth fixing first, backed by your own trading evidence.'},
   purchasing:{title:'Purchasing',subtitle:'Turn supplier invoices into ingredient costs, purchasing history and price-movement intelligence.'},
@@ -13,7 +14,7 @@ const routes={
   workspace:{title:'Workspace',subtitle:'Connect the systems powering Garnish: account, Square, MYOB, billing and venue data.'}
 };
 const map={
-  overview:'overview','profit-recovery':'profit-recovery',
+  'accounting-panel':'accounting',accounting:'accounting',overview:'overview','profit-recovery':'profit-recovery',
   'invoice-processing':'purchasing','supplier-intelligence':'purchasing','inventory-panel':'purchasing','inventory-panel':'purchasing',purchasing:'purchasing',
   labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst',
   square:'square','square-pos':'square','live-consultant':'consultant','consultant-admin-panel':'consultant-admin','workspace-info':'workspace','account-panel':'workspace','commercial-settings':'workspace'
@@ -37,7 +38,7 @@ function routeFor(el){
 }
 function moveKnown(){
   const places={
-    'invoice-processing':'purchasing','supplier-intelligence':'purchasing',
+    'accounting-panel':'accounting','invoice-processing':'purchasing','supplier-intelligence':'purchasing',
     'menu-costing':'menu-costing','square-pos':'square','live-consultant':'consultant','consultant-admin-panel':'consultant-admin','account-panel':'workspace','commercial-settings':'workspace'
   };
   for(const [id,r] of Object.entries(places)){
@@ -103,6 +104,9 @@ function build(){
     nav.insertBefore(a,nav.querySelector('a[href="#workspace-info"]')||null);
   }
 
+  if(nav&&!nav.querySelector('a[href="#accounting"]')){
+    const a=document.createElement('a');a.href='#accounting';a.textContent='Accounting';nav.appendChild(a);
+  }
   moveKnown();
   let initial=(location.hash||'#overview').slice(1);
   initial=map[initial]||initial;if(!routes[initial])initial='overview';

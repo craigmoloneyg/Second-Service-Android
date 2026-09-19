@@ -1,6 +1,7 @@
 import legacy from './worker.js';
 import {handleSquare} from './square.mjs';
 import {handleCommercial} from './commercial.mjs';
+import {handleAccounting} from './accounting.mjs';
 
 const authJson=(x,s=200,h={})=>new Response(JSON.stringify(x),{status:s,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...h}});
 const hex=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>x.toString(16).padStart(2,'0')).join('');
@@ -22,7 +23,11 @@ async function directAuth(request,env,action){
   try{
     if(!env.DB)return authJson({error:'Account storage is unavailable.'},503);
     await authTables(env);
-    if(action==='signout')return authJson({ok:true},200,{'Set-Cookie':'p2p_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'});
+    if(action==='signout'){
+      const token=(request.headers.get('cookie')||'').match(/(?:^|;\s*)p2p_auth=([a-f0-9]{64})(?:;|$)/)?.[1];
+      if(token)await env.DB.prepare('DELETE FROM garnish_sessions_v2 WHERE token=?').bind(token).run();
+      return authJson({ok:true},200,{'Set-Cookie':'p2p_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'});
+    }
     let body={};try{body=await request.json();}catch{}
     const email=String(body.email||'').trim().toLowerCase(),password=String(body.password||'');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return authJson({error:'Enter a valid email address.'},400);
@@ -34,12 +39,7 @@ async function directAuth(request,env,action){
       if(account){
         const valid=account.password_hash&&account.password_salt&&(await pwHash(password,account.password_salt))===account.password_hash;
         if(valid)return issueSession(env,account,email);
-        const s=await env.DB.prepare("SELECT COUNT(*) n FROM garnish_sessions_v2 WHERE account_id=? AND expires_at>?").bind(account.id,new Date().toISOString()).first();
-        if(Number(s?.n||0)>0)return authJson({error:'That email already has a Garnish account. Use Sign in.'},409);
-        const salt=hex(32),hash=await pwHash(password,salt),workspace=account.workspace_id||hex(32);
-        await env.DB.prepare("UPDATE garnish_accounts_v2 SET password_hash=?,password_salt=?,workspace_id=? WHERE id=?").bind(hash,salt,workspace,account.id).run();
-        account={...account,password_hash:hash,password_salt:salt,workspace_id:workspace};
-        return issueSession(env,account,email);
+        return authJson({error:'That email already has a Garnish account. Use Sign in.'},409);
       }
       const id=hex(32),salt=hex(32),workspace=hex(32),hash=await pwHash(password,salt),created=new Date().toISOString();
       await env.DB.prepare("INSERT INTO garnish_accounts_v2(id,email,password_hash,password_salt,workspace_id,created_at) VALUES(?,?,?,?,?,?)").bind(id,email,hash,salt,workspace,created).run();
@@ -72,6 +72,9 @@ async function directSession(request,env){
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
+    if(url.pathname.startsWith('/api/auth/') && request.method!=='POST')return authJson({error:'Method not allowed.'},405);
+    if(url.pathname.startsWith('/api/auth/') && request.headers.get('origin')!==url.origin)return authJson({error:'Request origin is not allowed.'},403);
+    if(url.pathname.startsWith('/api/accounting/'))return handleAccounting(request,env);
     if(url.pathname==='/api/auth/signup') return directAuth(request,env,'signup');
     if(url.pathname==='/api/auth/signin') return directAuth(request,env,'signin');
     if(url.pathname==='/api/auth/signout') return directAuth(request,env,'signout');
@@ -81,7 +84,7 @@ export default {
     const response=await legacy.fetch(request,env,ctx);
     const type=response.headers.get('content-type')||'';
     if(request.method==='GET'&&type.includes('text/html')){
-      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=11" defer></script><script src="/commercial-ui.js?v=10" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=7" defer></script><script src="/premium-brand.js?v=2" defer></script>',{html:true});}}).transform(response);
+      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=12" defer></script><script src="/commercial-ui.js?v=10" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=7" defer></script><script src="/premium-brand.js?v=2" defer></script><script src="/accounting-ui.js?v=1" defer></script>',{html:true});}}).transform(response);
     }
     return response;
   }
