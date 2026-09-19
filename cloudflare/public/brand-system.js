@@ -155,6 +155,7 @@ const stories={
 };
 function addStories(){
  document.querySelectorAll('.p2p-page').forEach(v=>{
+   if(['accounting','team'].includes(v.dataset.page))return;
    const head=v.querySelector('.p2p-page-head');if(!head||v.querySelector('.garnish-section-story'))return;
    const story=document.createElement('div');story.className='garnish-section-story';
    story.textContent=stories[v.dataset.page]||'One connected commercial picture for the business behind hospitality.';
@@ -164,6 +165,7 @@ function addStories(){
 function addUnderlay(){
  const host=document.querySelector('#p2p-page-host');if(!host)return;
  document.querySelectorAll('.p2p-page').forEach(v=>{
+   if(['accounting','team'].includes(v.dataset.page))return;
    if(v.querySelector('.garnish-sales-underlay'))return;
    const box=document.createElement('section');box.className='garnish-sales-underlay';
    box.innerHTML='<div class="eyebrow">Built by hospitality, not around it</div><h3>If you are still running the venue from disconnected reports, you are already behind.</h3><p>Garnish is informed by hospitality experience spanning Powerscourt\'s Gordon Ramsay operation, Marco Pierre White\'s Steakhouse and executive-level kitchen leadership. It was built around the pressure points operators actually live with: supplier prices moving without warning, labour climbing faster than sales, recipes costed once and forgotten, accounting arriving after the damage is done. Garnish pulls purchasing, recipes, sales, labour and accounting into one commercial command centre so you can see the leak while it is still a leak, not after it has become the month-end result. Code calculates the numbers. AI interprets the evidence. You stay in control of the decisions.</p><div class="garnish-sales-grid"><div class="garnish-sales-point"><strong>Cost every plate</strong><span>Supplier pricing changes? Garnish pushes that reality straight into ingredient and recipe cost so yesterday\'s margin does not masquerade as today\'s.</span></div><div class="garnish-sales-point"><strong>See the leak early</strong><span>High-volume dishes, supplier drift, labour pressure and weak contribution surface before they get buried in turnover.</span></div><div class="garnish-sales-point"><strong>One commercial picture</strong><span>Square, MYOB, invoices and recipes stop contradicting each other because Garnish brings them into the same operating view.</span></div><div class="garnish-sales-point"><strong>Move before everyone else</strong><span>The operator who sees the problem first gets the chance to fix it first. That is the edge Garnish is built to create.</span></div></div>';

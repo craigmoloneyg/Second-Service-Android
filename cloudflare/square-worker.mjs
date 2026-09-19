@@ -2,6 +2,7 @@ import legacy from './worker.js';
 import {handleSquare} from './square.mjs';
 import {handleCommercial} from './commercial.mjs';
 import {handleAccounting} from './accounting.mjs';
+import {handleStaff,hasStaffCookie} from './staff.mjs';
 
 const authJson=(x,s=200,h={})=>new Response(JSON.stringify(x),{status:s,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...h}});
 const hex=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>x.toString(16).padStart(2,'0')).join('');
@@ -72,6 +73,16 @@ async function directSession(request,env){
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
+    if(url.pathname.startsWith('/api/staff/')||url.pathname.startsWith('/api/team/'))return handleStaff(request,env);
+    if(['/staff','/staff/','/staff.html'].includes(url.pathname)){
+      url.pathname='/staff.html';const asset=await env.ASSETS.fetch(new Request(url,request));const response=new Response(asset.body,asset);
+      response.headers.set('Cache-Control','no-store');response.headers.set('Referrer-Policy','no-referrer');
+      response.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");return response;
+    }
+    if(hasStaffCookie(request)&&!['/staff.js','/staff.css','/garnish-logo.svg'].includes(url.pathname)){
+      if(url.pathname.startsWith('/api/'))return authJson({error:'Staff accounts can only access the staff portal.'},403);
+      return Response.redirect(url.origin+'/staff',303);
+    }
     if(url.pathname.startsWith('/api/auth/') && request.method!=='POST')return authJson({error:'Method not allowed.'},405);
     if(url.pathname.startsWith('/api/auth/') && request.headers.get('origin')!==url.origin)return authJson({error:'Request origin is not allowed.'},403);
     if(url.pathname.startsWith('/api/accounting/'))return handleAccounting(request,env);
@@ -84,7 +95,7 @@ export default {
     const response=await legacy.fetch(request,env,ctx);
     const type=response.headers.get('content-type')||'';
     if(request.method==='GET'&&type.includes('text/html')){
-      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=12" defer></script><script src="/commercial-ui.js?v=10" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=7" defer></script><script src="/premium-brand.js?v=2" defer></script><script src="/accounting-ui.js?v=1" defer></script>',{html:true});}}).transform(response);
+      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=13" defer></script><script src="/commercial-ui.js?v=10" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=8" defer></script><script src="/premium-brand.js?v=2" defer></script><script src="/accounting-ui.js?v=2" defer></script><script src="/team-ui.js?v=1" defer></script>',{html:true});}}).transform(response);
     }
     return response;
   }
