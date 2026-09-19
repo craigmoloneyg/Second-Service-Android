@@ -76,3 +76,37 @@ The existing Cloudflare Worker entrypoint loads the route and UI. A native app
 rebuild is not required to display the change after a verified website deployment.
 Do not deploy a separate Sites project or replace the marketing site. Publish
 only through the existing Cloudflare project after review and release authorisation.
+
+## GST automation and ATO status — 19 September 2026
+
+New transaction lines require an explicit tax classification. Standard automatic
+GST uses the GST-inclusive amount divided by 11, rounded per line to cents.
+The server recomputes automatic amounts; it does not trust browser previews.
+Invoice mode preserves the supplier's entered GST, including rounding differences.
+Existing records retain their original amounts. Imported invoice GST remains in
+invoice mode, and a zero or absent extracted tax does not establish GST-free status.
+Purchase GST credits still require the existing eligibility confirmation.
+
+Source checked: https://business.gov.au/registrations/register-for-taxes/register-for-goods-and-services-tax-gst
+This standard calculation is not support for special GST schemes or an automatic
+classification of restaurant ingredients. Split mixed treatments into separate lines.
+
+Reports offer a clearly labelled NOT LODGED CSV of the supported BAS working
+figures and their limitations. The ATO connection remains unavailable. No export
+or local calculation constitutes a submission, receipt, or payment.
+
+Direct ATO delivery requires DSP registration, service-specific specifications,
+EVTE testing, security evidence, production verification and whitelisting:
+https://softwaredevelopers.ato.gov.au/getting_started
+https://softwaredevelopers.ato.gov.au/operational_framework
+These steps have not been completed for Garnish in this work. No credentials or
+ATO registrations were created. Before implementing a transport, obtain access to
+the relevant activity-statement service specification and test credentials through
+Online services for DSPs. Do not collect users' ATO passwords in Garnish.
+
+Automatic employee PAYG remains blocked on verified effective-dated ATO
+withholding schedules and employee declaration inputs. Current official tables
+could not be retrieved reliably during this change. Do not substitute annual
+marginal income-tax brackets for payroll withholding, silently use old schedules,
+or label the optional reserve percentage as tax payable. Income-tax assessments,
+HELP, Medicare variations and special payments remain outside current coverage.

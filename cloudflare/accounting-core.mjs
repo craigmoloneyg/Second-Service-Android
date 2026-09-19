@@ -42,16 +42,21 @@ export function transaction(input, config) {
   requireValue(text(input.reference) && text(input.contact), 'Enter a reference and customer or supplier.');
   requireValue(Array.isArray(input.lines) && input.lines.length > 0 && input.lines.length <= 100, 'Add 1–100 transaction lines.');
   const lines = input.lines.map(line => {
-    const gross = cents(line.gross), gst = cents(line.gst);
+    const gross = cents(line.gross);
+    const gstMode = line.gst_mode ?? 'invoice';
+    requireValue(['auto','invoice'].includes(gstMode), 'Choose automatic GST or the invoice GST amount.');
+    // Standard 10% GST on a GST-inclusive amount: one eleventh, rounded per line.
+    // Preserve invoice amounts and existing records; never infer the tax classification.
+    const gst = gstMode === 'auto' ? (line.tax_code === 'taxable' ? Math.floor((gross+5)/11) : 0) : cents(line.gst);
     requireValue(gross > 0 && gst <= gross, 'Line total must be positive and GST cannot exceed it.');
     requireValue(['taxable','gst_free','input_taxed','out_of_scope','unregistered'].includes(line.tax_code), 'Choose a tax code for each line.');
     requireValue(line.tax_code === 'taxable' || gst === 0, 'Only taxable lines can have GST.');
     requireValue(config.gst_registered || gst === 0, 'A non-GST-registered business must record purchases at gross cost and cannot claim GST.');
     requireValue(config.gst_registered || !['taxable','gst_free','input_taxed'].includes(line.tax_code), 'Use unregistered or out-of-scope for a business not registered for GST.');
-    requireValue(line.tax_code !== 'taxable' || gst > 0, 'Enter the actual GST from the tax invoice.');
+    requireValue(line.tax_code !== 'taxable' || gst > 0 || gross <= 5, 'Enter the actual GST from the tax invoice.');
     requireValue(sale || gst === 0 || input.credit_confirmed === true, 'Confirm the GST credit is eligible and supported by a tax invoice.');
     requireValue(text(line.description), 'Enter a line description.');
-    return {description:text(line.description), gross, gst, tax_code:line.tax_code};
+    return {description:text(line.description), gross, gst, tax_code:line.tax_code, gst_mode:gstMode};
   });
   const issued = date(input.date), paid = input.paid_date ? date(input.paid_date) : null;
   requireValue(!paid || paid >= issued, 'Payment date must not precede the document date. Record deposits separately.');
