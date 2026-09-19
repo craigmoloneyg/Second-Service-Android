@@ -99,6 +99,7 @@
     #square-pos .muted,#square-pos .label,#square-pos small,#square-pos p{color:#c7d4cc!important}
     #square-pos strong,#square-pos h2,#square-pos .value{color:var(--g-cream)!important}
 
+    .main .topbar,.main .topbar :is(h1,.kicker,.muted){color:#142d23!important;opacity:1!important}
     /* Reading surfaces: dark ink, explicit matching backgrounds, no faded labels. */
     .main .card{color:#142d23!important;--text:#142d23;--muted:#344c40;--card:#f7f9f3;--line:#a9bbae}
     .main .card,.main .plan-step,.main #invoiceResult,.main .p2p-ai-result{
