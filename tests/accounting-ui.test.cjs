@@ -38,3 +38,22 @@ test('Accounting route loads, submits settings and clears private figures after 
  await w.fetch('/api/auth/signout',{method:'POST'});
  assert.equal(w.document.getElementById('acc-report').textContent,'');assert.match(w.document.getElementById('acc-status').textContent,/Sign in/);observers.forEach(o=>o.disconnect());dom.window.close();
 });
+
+test('automatic payroll form sends declaration choices and clears outdated previews',async()=>{
+ const dom=new JSDOM('<main></main>',{url:'https://garnish.test/#accounting',runScripts:'outside-only'}),w=dom.window;let submitted;
+ w.fetch=async(url,options)=>{
+  if(String(url).endsWith('/payroll-preview')){submitted=JSON.parse(options.body);return new Response(JSON.stringify({preview:{gross:100000,payg:20000,net:80000,super:12000,withholding:{study_loan_withholding:5000}}}));}
+  if(String(url).includes('/report?'))return new Response(JSON.stringify({bas:{},accounts:[],journal:[],limitations:[]}));
+  return new Response(JSON.stringify({revision:1,book:{settings:{business_name:'Test',gst_registered:true},transactions:[],payroll:[],audit:[]}}));
+ };
+ w.eval(readFileSync('cloudflare/public/accounting-ui.js','utf8'));w.document.dispatchEvent(new w.Event('DOMContentLoaded'));for(let i=0;i<5;i++)await tick();
+ const f=w.document.getElementById('acc-payroll-form');assert.equal(f.elements.payg.disabled,true);
+ f.elements.pay_frequency.value='weekly';f.elements.tax_scale.value='2';f.elements.study_loan.value='true';f.elements.declaration_confirmed.checked=true;
+ w.document.getElementById('acc-pay-preview').click();for(let i=0;i<5;i++)await tick();
+ assert.equal(submitted.study_loan,true);assert.equal(submitted.declaration_confirmed,true);assert.equal(submitted.withholding_mode,'automatic');assert.equal(submitted.payg,undefined);
+ assert.match(w.document.getElementById('acc-pay-result').textContent,/200\.00/);
+ f.elements.pay_frequency.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(w.document.getElementById('acc-pay-result').textContent,'');
+ f.elements.withholding_mode.value='manual';f.elements.withholding_mode.dispatchEvent(new w.Event('change',{bubbles:true}));
+ assert.equal(f.elements.payg.disabled,false);assert.equal(f.elements.tax_scale.disabled,true);assert.equal(w.document.getElementById('acc-auto-tax').hidden,true);
+ dom.window.close();
+});

@@ -110,3 +110,39 @@ could not be retrieved reliably during this change. Do not substitute annual
 marginal income-tax brackets for payroll withholding, silently use old schedules,
 or label the optional reserve percentage as tax payable. Income-tax assessments,
 HELP, Medicare variations and special payments remain outside current coverage.
+
+## Automatic regular-payment PAYG — 20 September 2026
+
+The previous tax-table retrieval blocker is resolved. `payg-2026.mjs` implements
+Schedules 1 and 8 from the official Taxation Administration (Withholding
+Schedules) Instrument 2026 (F2026L00716):
+https://www.legislation.gov.au/F2026L00716/asmade/2026-06-12/text/original/epub/OEBPS/document_1/document_1.html
+ATO release confirmation: https://softwaredevelopers.ato.gov.au/PAYGWTaxtables
+
+Coverage: weekly, fortnightly, monthly and quarterly regular payments; Schedule 1
+scales 1, 2, 3, 5 and 6; declared annual tax offsets; separate Schedule 8 study-loan
+withholding. Uses integer coefficients and the prescribed whole-dollar rounding,
+including the monthly 33-cent adjustment. The separate-component method is
+recorded with the calculation version. This is withholding, not income tax assessed.
+
+Automatic mode requires explicit frequency, tax treatment, debt selection and a
+confirmation that the employee provided a TFN and has no excluded treatment.
+The TFN itself is not collected. Withholding is recalculated on the server for
+preview and posting; browser-supplied tax totals cannot override it. Each posted
+record retains the selected declaration inputs, rule version and component totals.
+Existing/manual payments are unchanged. Dates outside 1 July 2026–30 June 2027
+fail closed until a new rule version is verified.
+
+Excluded: no-TFN rules, working holiday makers, seniors/pensioners, family Medicare
+adjustments, ATO variations, salary sacrifice, bonus/backpay, termination payments,
+daily/casual-table calculations and additional withholding arrangements. Manual
+verified withholding remains available for these. Pay rates/awards, eligibility
+and super earnings base/rate are still operator-verified. Staff clocks do not
+create payroll payments. No wages, super or STP/BAS submissions are sent.
+
+Validation: all 48 published weekly rows and the corresponding fortnightly rows
+across five scales, 16 published monthly rows across five scales (560 assertions),
+three official Schedule 8 examples and two Schedule 1 tax-offset examples. API
+checks cover preview/post equality, server recomputation, metadata, W2 and ledger
+balance. UI checks cover declaration serialization, manual/automatic switching
+and invalidating a displayed preview after edits.
