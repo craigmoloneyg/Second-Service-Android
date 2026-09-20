@@ -1,3 +1,4 @@
+import {calculatePAYG} from './payg-2026.mjs';
 // All monetary values are integer AUD cents. No AI-generated tax classifications.
 export const accounts = {
   bank: ['Bank / cash', 'asset'], receivables: ['Accounts receivable', 'asset'],
@@ -75,13 +76,21 @@ export function payroll(input) {
     requireValue(hours>0 && hours<=100000 && text(line.description), 'Enter a description and valid hours for each earnings line.');
     return {description:text(line.description), hours_hundredths:hours, rate, amount:roundedProduct(hours,rate,100)};
   });
-  const gross=lines.reduce((n,l)=>n+l.amount,0), payg=cents(input.payg), deductions=cents(input.deductions);
+  const gross=lines.reduce((n,l)=>n+l.amount,0), deductions=cents(input.deductions);
+  const withholdingMode=input.withholding_mode??'manual';
+  requireValue(['manual','automatic'].includes(withholdingMode),'Choose automatic or manual withholding.');
+  const withholding=withholdingMode==='automatic'?calculatePAYG(gross,paid,{
+    frequency:input.pay_frequency,scale:input.tax_scale,study_loan:input.study_loan,
+    declaration_confirmed:input.declaration_confirmed,special_treatment:input.special_treatment,
+    annual_offset_cents:cents(input.annual_tax_offset??'0')
+  }):null;
+  const payg=withholding?withholding.total:cents(input.payg);
   requireValue(gross<=10000000000, 'Wage records above $100 million are not supported.');
   const superBase=cents(input.super_base), superRate=cents(input.super_rate);
   requireValue(superBase<=gross && superRate<=10000, 'Check the super earnings base and percentage.');
   requireValue(payg+deductions<=gross, 'Withholding and deductions cannot exceed gross pay.');
   return {employee:text(input.employee), reference:text(input.reference), period_start:start, period_end:end, paid_date:paid,
-    lines,gross,payg,deductions,net:gross-payg-deductions,super_base:superBase,super_bps:superRate,
+    lines,gross,payg,withholding_mode:withholdingMode,withholding,deductions,net:gross-payg-deductions,super_base:superBase,super_bps:superRate,
     super:roundedProduct(superBase,superRate,10000), status:'recorded_payment',
     verified:input.verified===true};
 }
@@ -140,5 +149,5 @@ export function report(book,start,end) {
       'W1/W2 include recorded ordinary wage payments only. Other withholding, PAYG instalments, FBT and GST adjustments are not included.',
       'P&L treats stock purchases as expense; stock movements, depreciation, opening balances and tax adjustments are not included.',
       'Tax reserve is your chosen percentage of recorded profit, not a calculation of income tax payable.',
-      'Payroll records use your verified PAYG amount, earnings rates and super base/rate. No automatic award interpretation, leave accrual, STP, super remittance or bank payments.']};
+      'PAYG is calculated for supported 2026–27 regular payments or entered manually; earnings rates and super base/rate require verification. No automatic award interpretation, leave accrual, STP, super remittance or bank payments.']};
 }

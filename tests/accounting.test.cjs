@@ -73,3 +73,15 @@ test('automatic standard GST is recomputed server-side with exact cents and expl
  const book=c.emptyBook();book.settings=config;book.transactions.push({...make('110'),id:'auto'});
  assert.equal(c.report(book,'2026-10-01','2026-10-31').bas['1B'],1000);
 });
+
+test('automatic PAYG is recomputed at preview and posting, audited and included in W2',async()=>{
+ const {handleAccounting:h}=await import('../cloudflare/accounting.mjs'),env=storage();
+ const input={...pay,lines:[{description:'Ordinary',hours:'1',rate:'2608.36'}],super_base:'2608.36',payg:'0',withholding_mode:'automatic',pay_frequency:'weekly',tax_scale:'2',study_loan:true,declaration_confirmed:true,annual_tax_offset:'0'};
+ const preview=await (await h(req('payroll-preview',input),env)).json();
+ assert.equal(preview.preview.withholding.study_loan_withholding,19300);assert.ok(preview.preview.payg>19300);
+ await h(req('state',{action:'settings',input:{...config,reserve_percent:'20'},revision:0,request_id:'automatic-settings-01'}),env);
+ const posted=await h(req('state',{action:'payroll',input,revision:1,request_id:'automatic-payroll-001'}),env);assert.equal(posted.status,201);
+ const state=await (await h(req(),env)).json();assert.equal(state.book.payroll[0].payg,preview.preview.payg);assert.equal(state.book.payroll[0].withholding.version,'AU-PAYG-2026.1');
+ const report=await (await h(req('report?start=2026-09-01&end=2026-09-30'),env)).json();assert.equal(report.bas.W2,preview.preview.payg);assert.equal(report.trial_balance_difference,0);
+ const rejected=await h(req('payroll-preview',{...input,declaration_confirmed:false}),env);assert.equal(rejected.status,400);env.db.close();
+});
