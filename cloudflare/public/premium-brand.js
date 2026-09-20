@@ -129,6 +129,51 @@
     .kpi.garnish-enhanced .label{font-size:12px!important;font-weight:700!important}
     .p2p-brand img{background:#f7f9f3;border-radius:8px;padding:6px}
 
+    /* Refined hospitality workspace: existing forest/lime palette, quieter surfaces. */
+    html,body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+    :root{--g-shadow:0 8px 24px rgba(0,0,0,.12)}
+    .main{padding:32px 38px 64px!important}
+    .main .topbar{padding:22px 26px!important;border-radius:14px!important;background:#f7f9f3!important;border-color:#b8c7bb!important;box-shadow:0 4px 20px rgba(0,0,0,.10)!important}
+    .main .topbar h1{font-size:clamp(26px,3vw,36px)!important;line-height:1.15;letter-spacing:-.025em}
+    .main .card{padding:24px!important;border-radius:14px!important;border-color:#b8c7bb!important;box-shadow:0 6px 24px rgba(0,0,0,.10)!important}
+    .main .card .card{padding:18px!important;box-shadow:none!important}
+    .main .card h2{font-size:24px!important;line-height:1.2;letter-spacing:-.02em}
+    .main .card h3{font-size:19px!important;line-height:1.3}
+    .card-head{margin-bottom:22px!important}
+    .kicker,.p2p-eyebrow{font-size:11px!important;letter-spacing:.16em!important}
+    .kpis,.grid-2{gap:18px!important}
+    .nav{gap:5px!important}
+    .nav a{border-radius:8px!important;font-size:13px;font-weight:600!important;padding:12px 14px!important}
+    .sidebar .logo{font-weight:650!important;letter-spacing:.025em!important}
+    .btn,.p2p-primary,.p2p-secondary,.main .card button{border-radius:8px!important;min-height:44px;padding:11px 17px!important;font-size:14px!important;font-weight:650!important;letter-spacing:.01em;transition:background-color .16s ease,box-shadow .16s ease}
+    .btn.primary,.p2p-primary{box-shadow:0 4px 14px rgba(0,0,0,.12)!important}
+    .main .card :is(input:not([type=checkbox]):not([type=radio]),textarea,select){min-height:44px;border-radius:8px!important;padding:11px 12px!important;font-size:16px!important;line-height:1.4}
+    .main .card :is(input,textarea,select):focus-visible{outline:2px solid #164633!important;outline-offset:3px}
+    :is(button,a):focus-visible{outline:3px solid #a8d92f;outline-offset:3px}
+    .main .card :is(table,.value,.impact,.acc-metric strong){font-variant-numeric:tabular-nums}
+    .main .card :is(.table th,#accounting-panel th){padding:12px 10px!important;background:#e9efe5;letter-spacing:.06em;font-size:11px!important}
+    .main .card :is(.table td,#accounting-panel td){padding:14px 10px!important;border-color:#cbd6cc!important}
+    .main .card .table tbody tr:hover{background:#edf2e9}
+    .main .card .acc-metric{border-color:#bccbbf;background:#edf2e9;border-radius:10px;padding:18px}
+    .main .card .acc-metric strong{font-family:Georgia,'Times New Roman',serif;font-weight:500;font-size:30px;line-height:1.3}
+    .main .card .acc-note{border-left-color:#164633;background:#e9efe5;border-radius:0 8px 8px 0}
+    .main .card .acc-line{border-color:#c2cfc4;background:#f0f4ed;border-radius:10px;padding:16px}
+    .garnish-brand-disc,.garnish-pie{box-shadow:none!important}
+    .kpi.garnish-enhanced .value{font-size:34px!important;line-height:1.15;letter-spacing:-.025em}
+    .p2p-home{padding-top:52px!important;padding-bottom:48px!important}
+    .p2p-tile,.p2p-art,.p2p-receipt{border-color:rgba(197,208,199,.25)!important;border-radius:14px!important;box-shadow:0 8px 26px rgba(0,0,0,.12)!important}
+    .p2p-tile{padding:24px!important}
+    .p2p-tile p{line-height:1.65!important}
+    .p2p-brand img{border-radius:6px!important}
+    @media(max-width:980px){.main{padding:24px!important}.main .topbar{padding:20px!important}}
+    @media(max-width:600px){
+      .main{padding:16px 12px 36px!important}.main .card{padding:18px!important}.main .topbar{padding:18px!important}
+      .main .card h2{font-size:22px!important}.kpis,.grid-2{gap:12px!important}
+      .p2p-home{padding:28px 18px 36px!important}.p2p-tile{padding:20px!important}
+      .main .card .acc-line{padding:12px}.kpi.garnish-enhanced .value{font-size:30px!important}
+    }
+    @media(prefers-reduced-motion:reduce){.btn,.p2p-primary,.p2p-secondary,.main .card button{transition:none!important}}
+
     /* Garnish mark used wherever a decorative circle used to be */
     .garnish-mini-mark{width:18px;height:18px;display:inline-block;vertical-align:-3px;object-fit:contain;filter:drop-shadow(0 3px 8px rgba(0,0,0,.18))}
     .nav .icon.garnish-iconised{width:26px;height:20px;display:inline-flex;align-items:center;justify-content:flex-start}
