@@ -146,3 +146,34 @@ three official Schedule 8 examples and two Schedule 1 tax-offset examples. API
 checks cover preview/post equality, server recomputation, metadata, W2 and ledger
 balance. UI checks cover declaration serialization, manual/automatic switching
 and invalidating a displayed preview after edits.
+
+## Payroll review and ATO connection gap — 20 September 2026
+
+Reports & BAS now provides a payroll review CSV for the selected payment-date range.
+It reconciles recorded gross/PAYG with W1/W2 and includes net pay, deductions,
+super, source record IDs, calculation versions and linked reversals. Reversals
+reduce totals on their own recorded date; originals remain visible. Manual
+withholding has an unknown study-loan split (blank), never an assumed zero.
+Names are descriptive labels, not unique employee identifiers. This is a working
+export, not an STP payload, payslip, income statement or evidence of lodgement.
+
+Direct ATO reporting remains blocked. No credentials or approval evidence are
+configured in this implementation. Requirements confirmed against:
+- https://softwaredevelopers.ato.gov.au/getting_started
+- https://softwaredevelopers.ato.gov.au/STP_ProductRegistration
+- https://softwaredevelopers.ato.gov.au/OnlineservicesforDSPs
+
+Next external step: the authorised business representative registers/signs in to
+Online services for DSPs using their own Digital ID and business authority.
+Do not request credentials in chat. Obtain the current service specifications,
+register Garnish and arrange EVTE access through that account. The developer
+must then implement and test the chosen service against those specifications,
+complete the OSF evidence and required conformance/production verification,
+and obtain production whitelisting before enabling submission.
+
+Known implementation gaps: employer ABN/branch and stable payroll identifiers;
+secure employee declarations/identifiers; STP Phase 2 earnings classifications;
+opening and year-to-date totals; update/finalisation and correction events;
+employer declarations; authenticated transmission; ATO response/receipt handling
+and retry reconciliation. BAS transmission is a separate service and is also
+unimplemented. Do not infer these from a balanced ledger or a CSV export.
