@@ -57,3 +57,20 @@ test('automatic payroll form sends declaration choices and clears outdated previ
  assert.equal(f.elements.payg.disabled,false);assert.equal(f.elements.tax_scale.disabled,true);assert.equal(w.document.getElementById('acc-auto-tax').hidden,true);
  dom.window.close();
 });
+
+test('payroll review download uses selected report and labels export as not lodged',async()=>{
+ const c=await import('../cloudflare/accounting-core.mjs');const b=c.emptyBook();
+ b.settings={business_name:'Review venue'};
+ const dom=new JSDOM('<main></main>',{url:'https://garnish.test/',runScripts:'outside-only'}),w=dom.window;
+ let blob,filename;w.URL.createObjectURL=value=>{blob=value;return 'blob:review';};w.URL.revokeObjectURL=()=>{};
+ w.HTMLAnchorElement.prototype.click=function(){filename=this.download;};
+ w.fetch=async url=>new Response(JSON.stringify(String(url).includes('/report?')?c.report(b,'2026-09-01','2026-09-30'):{book:b,revision:0}));
+ w.eval(readFileSync('cloudflare/public/accounting-ui.js','utf8'));w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
+ for(let i=0;i<8;i++)await tick();
+ assert.match(w.document.getElementById('acc-report').textContent,/Payroll review · not lodged/);
+ w.document.getElementById('acc-payroll-export').click();
+ assert.match(filename,/Garnish-payroll-review-/);
+ const text=await new Promise(resolve=>{const reader=new w.FileReader();reader.onload=()=>resolve(reader.result);reader.readAsText(blob);});
+ assert.match(text,/NOT LODGED — NOT AN STP UPLOAD/);assert.match(text,/Review venue/);assert.match(text,/TOTAL/);
+ dom.window.close();
+});

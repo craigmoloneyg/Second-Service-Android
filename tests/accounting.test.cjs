@@ -85,3 +85,24 @@ test('automatic PAYG is recomputed at preview and posting, audited and included 
  const report=await (await h(req('report?start=2026-09-01&end=2026-09-30'),env)).json();assert.equal(report.bas.W2,preview.preview.payg);assert.equal(report.trial_balance_difference,0);
  const rejected=await h(req('payroll-preview',{...input,declaration_confirmed:false}),env);assert.equal(rejected.status,400);env.db.close();
 });
+
+test('payroll review reconciles W1/W2 and preserves dated reversals and unknown loan splits',async()=>{
+ const c=await core,b=c.emptyBook();b.settings=config;
+ const p={...c.payroll(pay),id:'original',reversed_by:'correction'};
+ b.payroll.push(p,{...p,id:'correction',reversed_by:undefined,reversal_of:'original',paid_date:'2026-10-02'});
+ const september=c.report(b,'2026-09-01','2026-09-30');
+ assert.equal(september.payroll_review.status,'NOT_LODGED');
+ assert.equal(september.payroll_review.totals.gross,september.bas.W1);
+ assert.equal(september.payroll_review.totals.payg,september.bas.W2);
+ assert.equal(september.payroll_review.rows[0].study_loan,null);
+ assert.equal(september.payroll_review.rows[0].reversed_by,'correction');
+ const october=c.report(b,'2026-10-01','2026-10-31');
+ assert.equal(october.payroll_review.totals.gross,-p.gross);
+ assert.equal(october.payroll_review.rows[0].reversal_of,'original');
+ assert.equal(october.payroll_review.balance_difference,0);
+ const combined=c.payrollReview(b,'2026-09-01','2026-10-31');
+ for(const value of Object.values(combined.totals))assert.equal(value,0);
+ assert.equal(combined.rows.length,2);
+ assert.throws(()=>c.payrollReview(b,'2026-10-01','2026-09-01'));
+ assert.equal(c.payrollReview(b,'2026-11-01','2026-11-30').rows.length,0);
+});

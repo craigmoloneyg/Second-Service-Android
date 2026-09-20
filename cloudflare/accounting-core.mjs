@@ -141,7 +141,7 @@ export function report(book,start,end) {
   for(const p of book.payroll.filter(p=>within(p.paid_date))){const sign=p.reversal_of?-1:1;bas.W1+=sign*p.gross;bas.W2+=sign*p.payg;}
   bas.gst_net=bas['1A']-bas['1B'];
   const reserve=book.settings?.reserve_bps==null?null:roundedProduct(Math.max(0,profit),book.settings.reserve_bps,10000);
-  return {start,end,revenue,expenses,profit,tax_reserve:reserve,bas,accounts:totals,journal:period,
+  return {start,end,revenue,expenses,profit,tax_reserve:reserve,bas,accounts:totals,journal:period,payroll_review:payrollReview(book,start,end),
     trial_balance_difference:totals.reduce((n,a)=>n+a.balance,0),
     receivables:totals.find(a=>a.code==='receivables').balance,
     payables:0-totals.find(a=>a.code==='payables').balance,
@@ -150,4 +150,22 @@ export function report(book,start,end) {
       'P&L treats stock purchases as expense; stock movements, depreciation, opening balances and tax adjustments are not included.',
       'Tax reserve is your chosen percentage of recorded profit, not a calculation of income tax payable.',
       'PAYG is calculated for supported 2026–27 regular payments or entered manually; earnings rates and super base/rate require verification. No automatic award interpretation, leave accrual, STP, super remittance or bank payments.']};
+}
+// Working records only: employee names are not STP identifiers and are never merged.
+export function payrollReview(book,start,end){
+  date(start);date(end);requireValue(start<=end,'Start date must not follow end date.');
+  const keys=['gross','payg','deductions','net','super'];
+  const totals=Object.fromEntries(keys.map(k=>[k,0]));
+  const rows=book.payroll.filter(p=>p.paid_date>=start&&p.paid_date<=end).map(p=>{
+    const sign=p.reversal_of?-1:1;
+    const row={id:p.id,employee:p.employee,reference:p.reference,paid_date:p.paid_date,
+      period_start:p.period_start,period_end:p.period_end,
+      type:p.reversal_of?'Reversal':'Payment',reversal_of:p.reversal_of||'',reversed_by:p.reversed_by||'',
+      calculation:p.withholding?.version||'Verified manual',
+      study_loan:p.withholding?sign*p.withholding.study_loan_withholding:null};
+    for(const k of keys){row[k]=sign*p[k];totals[k]+=row[k];}
+    return row;
+  });
+  return {status:'NOT_LODGED',start,end,rows,totals,
+    balance_difference:totals.gross-totals.payg-totals.deductions-totals.net};
 }
