@@ -1,3 +1,4 @@
+import {handlePOS,hasKitchenCookie} from './pos.mjs';
 import legacy from './worker.js';
 import {handleSquare} from './square.mjs';
 import {handleCommercial} from './commercial.mjs';
@@ -73,6 +74,19 @@ async function directSession(request,env){
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
+    if(hasKitchenCookie(request)&&!['/kitchen','/kitchen/','/kitchen.html','/pos.css','/pos-ui.js'].includes(url.pathname)&&!url.pathname.startsWith('/api/pos/')){
+      if(url.pathname.startsWith('/api/'))return authJson({error:'Kitchen access only.'},403);
+      return Response.redirect(url.origin+'/kitchen',303);
+    }
+    if(url.pathname.startsWith('/api/pos/')){
+      if(hasStaffCookie(request))return authJson({error:'Staff accounts cannot access the POS.'},403);
+      return handlePOS(request,env);
+    }
+    if(['/kitchen','/kitchen/','/kitchen.html'].includes(url.pathname)){
+      url.pathname='/kitchen.html';const asset=await env.ASSETS.fetch(new Request(url,request));const r=new Response(asset.body,asset);
+      r.headers.set('Cache-Control','no-store');r.headers.set('Referrer-Policy','no-referrer');
+      r.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");return r;
+    }
     if(url.pathname.startsWith('/api/staff/')||url.pathname.startsWith('/api/team/'))return handleStaff(request,env);
     if(['/staff','/staff/','/staff.html'].includes(url.pathname)){
       url.pathname='/staff.html';const asset=await env.ASSETS.fetch(new Request(url,request));const response=new Response(asset.body,asset);
@@ -95,7 +109,7 @@ export default {
     const response=await legacy.fetch(request,env,ctx);
     const type=response.headers.get('content-type')||'';
     if(request.method==='GET'&&type.includes('text/html')){
-      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=13" defer></script><script src="/commercial-ui.js?v=10" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=8" defer></script><script src="/premium-brand.js?v=5" defer></script><script src="/accounting-ui.js?v=4" defer></script><script src="/team-ui.js?v=1" defer></script>',{html:true});}}).transform(response);
+      return new HTMLRewriter().on('body',{element(e){e.append('<script src="/square-ui-production.js?v=4" defer></script><script src="/page-router.js?v=14" defer></script><script src="/commercial-ui.js?v=10" defer></script><script src="/core-ui-fix.js?v=9" defer></script><script src="/profit-intelligence.js?v=8" defer></script><script src="/brand-system.js?v=8" defer></script><script src="/premium-brand.js?v=5" defer></script><script src="/accounting-ui.js?v=4" defer></script><script src="/team-ui.js?v=1" defer></script><link rel="stylesheet" href="/pos.css?v=1"><script src="/pos-ui.js?v=1" defer></script>',{html:true});}}).transform(response);
     }
     return response;
   }

@@ -1,5 +1,6 @@
 (()=>{
 const routes={
+  orders:{title:"Current orders",subtitle:"Send orders to your kitchen and follow service."},
   team:{title:'Staff',subtitle:'Staff sign-ins, clocked hours and access.'},
   accounting:{title:'Accounting',subtitle:'Your books, GST working papers and recorded wages in Garnish.'},
   overview:{title:'Overview',subtitle:'Your commercial control room: revenue, costs, margin and the signals that matter first.'},
@@ -15,6 +16,7 @@ const routes={
   workspace:{title:'Workspace',subtitle:'Connect the systems powering Garnish: account, Square, MYOB, billing and venue data.'}
 };
 const map={
+  "garnish-pos-root":"orders",orders:"orders",
   'team-panel':'team',team:'team','accounting-panel':'accounting',accounting:'accounting',overview:'overview','profit-recovery':'profit-recovery',
   'invoice-processing':'purchasing','supplier-intelligence':'purchasing','inventory-panel':'purchasing','inventory-panel':'purchasing',purchasing:'purchasing',
   labour:'labour','menu-costing':'menu-costing',bar:'bar',analyst:'analyst',
@@ -39,6 +41,7 @@ function routeFor(el){
 }
 function moveKnown(){
   const places={
+    "garnish-pos-root":"orders",
     'team-panel':'team','accounting-panel':'accounting','invoice-processing':'purchasing','supplier-intelligence':'purchasing',
     'menu-costing':'menu-costing','square-pos':'square','live-consultant':'consultant','consultant-admin-panel':'consultant-admin','account-panel':'workspace','commercial-settings':'workspace'
   };
@@ -109,6 +112,7 @@ function build(){
     const a=document.createElement('a');a.href='#accounting';a.textContent='Accounting';nav.appendChild(a);
   }
   if(nav&&!nav.querySelector('a[href="#team"]')){const a=document.createElement('a');a.href='#team';a.textContent='Staff';nav.appendChild(a);}
+  if(nav&&!nav.querySelector('a[href="#orders"]')){const a=document.createElement("a");a.href="#orders";a.textContent="Current orders";nav.appendChild(a);}
   moveKnown();
   let initial=(location.hash||'#overview').slice(1);
   initial=map[initial]||initial;if(!routes[initial])initial='overview';
