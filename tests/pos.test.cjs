@@ -41,3 +41,13 @@ test('recovered POS import preserves tickets, converts money and rejects duplica
  assert.equal((await h(req('import',{...b,revision:1,request_id:'import-identifier-2'}),env)).status,400);
  const d=await (await h(req('device',{name:'Expired'}),env)).json();env.db.prepare("UPDATE garnish_kitchen_devices SET pair_expires='2000-01-01'").run();assert.equal((await h(req('pair',{token:d.url.split('#pair=')[1]},''),env)).status,401);
 });
+
+test('kitchen page uses canonical asset URL without redirect loops',async()=>{
+ const worker=(await import('../cloudflare/square-worker.mjs')).default;
+ const env={ASSETS:{async fetch(request){assert.equal(new URL(request.url).pathname,'/kitchen');return new Response('<main>Kitchen</main>',{headers:{'Content-Type':'text/html'}});}}};
+ for(const path of ['/kitchen','/kitchen/','/kitchen.html']){
+  const response=await worker.fetch(new Request('https://garnish.test'+path),env,{});
+  assert.equal(response.status,200);assert.equal(await response.text(),'<main>Kitchen</main>');
+  assert.equal(response.headers.get('Cache-Control'),'no-store');
+ }
+});
