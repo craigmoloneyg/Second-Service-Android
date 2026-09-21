@@ -83,7 +83,7 @@ export default {
       return handlePOS(request,env);
     }
     if(['/kitchen','/kitchen/','/kitchen.html'].includes(url.pathname)){
-      url.pathname='/kitchen.html';const asset=await env.ASSETS.fetch(new Request(url,request));const r=new Response(asset.body,asset);
+      url.pathname='/kitchen';const asset=await env.ASSETS.fetch(new Request(url,request));const r=new Response(asset.body,asset);
       r.headers.set('Cache-Control','no-store');r.headers.set('Referrer-Policy','no-referrer');
       r.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");return r;
     }
