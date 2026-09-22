@@ -1,7 +1,7 @@
 {
   "name": "garnish-windows",
-  "version": "1.3.2",
-  "description": "Garnish desktop app",
+  "version": "1.4.0",
+  "description": "Garnish Live workspace launcher",
   "private": true,
   "main": "main.js",
   "author": "Garnish",
@@ -14,14 +14,26 @@
     "electron-builder": "26.0.12"
   },
   "build": {
-    "appId": "com.secondservice.price2plate",
-    "productName": "Garnish",
+    "appId": "com.garnish.live",
+    "productName": "Garnish Live",
     "artifactName": "Garnish-Setup-${version}.${ext}",
-    "directories": { "output": "dist" },
-    "extraResources": [{"from":"../app/src/main/assets", "to":"enhancements", "filter":["welcome.js", "invoice-batch.js"]}],
-    "files": ["main.js", "preload.js", "logo.svg"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "logo.svg"
+    ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "artifactName": "Garnish-Setup-${version}.${ext}"
     },
     "nsis": {
@@ -30,7 +42,7 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Garnish"
+      "shortcutName": "Garnish Live"
     }
   }
 }
