@@ -1,9 +1,11 @@
-# Garnish Live 1.4.0
+# Garnish 1.4.1 app-window repair
 
-Android and Windows launchers open https://garnish-craig.craig-moloneyg.chatgpt.site/workspace in the system browser, retaining browser sign-in and receiving live site updates.
+Windows now uses a sandboxed Electron application window with persistent app cookies, Garnish icon, workspace navigation, reload and fullscreen controls. Android uses its own WebView with persistent cookies, file picking, downloads and an error/retry screen. Neither launches the system browser for the workspace.
 
-These are online launchers, not offline POS engines. The Android package is a development-signed APK built by the existing CI workflow; Windows is an unsigned installer. Physical-device installation has not been tested.
+Known sign-in and callback destinations remain inside the app. Navigation unit tests verify routing; live ChatGPT authentication and Google/Apple identity-provider acceptance have NOT been verified on physical devices. Some identity providers may reject embedded browsers. Do not claim that a successful build proves successful login.
 
-They use new application identities and the name Garnish Live, so existing Garnish installations and local data are preserved. Use the same Garnish account on order-entry and kitchen devices to share venue records. The hosted site determines feature availability.
+Both connect to the repaired live Garnish service. Internet is required for synchronized orders; this is not an offline POS engine. No existing local records are removed.
 
-The old injected welcome and invoice scripts are not executed by these launchers. No changes are made to the legacy Cloudflare service.
+The Windows installer uses the existing live-installer app ID; Android uses com.garnish.app to avoid overwriting earlier differently signed APKs. Android is development-signed and Windows is unsigned. Keep previous apps until data access and sign-in are confirmed.
+
+The packaged icon is the sliced-circle mark extracted from Craig's supplied Garnish logo. ICO sizes 16–256 are embedded in Windows installer/executable and the PNG is packaged for Android.

@@ -1,13 +1,14 @@
 {
   "name": "garnish-windows",
-  "version": "1.4.0",
-  "description": "Garnish Live workspace launcher",
+  "version": "1.4.1",
+  "description": "Garnish desktop application",
   "private": true,
   "main": "main.js",
   "author": "Garnish",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis"
+    "dist": "electron-builder --win nsis",
+    "predist": "node navigation.test.cjs"
   },
   "devDependencies": {
     "electron": "38.1.0",
@@ -15,15 +16,16 @@
   },
   "build": {
     "appId": "com.garnish.live",
-    "productName": "Garnish Live",
+    "productName": "Garnish",
     "artifactName": "Garnish-Setup-${version}.${ext}",
     "directories": {
       "output": "dist"
     },
     "files": [
       "main.js",
-      "preload.js",
-      "logo.svg"
+      "navigation.cjs",
+      "garnish.ico",
+      "garnish-icon.png"
     ],
     "win": {
       "target": [
@@ -34,7 +36,8 @@
           ]
         }
       ],
-      "artifactName": "Garnish-Setup-${version}.${ext}"
+      "artifactName": "Garnish-Setup-${version}.${ext}",
+      "icon": "garnish.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -42,7 +45,9 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Garnish Live"
+      "shortcutName": "Garnish",
+      "installerIcon": "garnish.ico",
+      "uninstallerIcon": "garnish.ico"
     }
   }
 }

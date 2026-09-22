@@ -4,11 +4,11 @@ android {
     namespace 'com.secondservice.android'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.garnish.live'
+        applicationId 'com.garnish.app'
         minSdk 29
         targetSdk 35
-        versionCode 7
-        versionName '1.4.0'
+        versionCode 8
+        versionName '1.4.1'
     }
     buildTypes {
         release { minifyEnabled false }

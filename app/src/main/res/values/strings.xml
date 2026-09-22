@@ -1,4 +1,1 @@
-<resources>
-    <string name="app_name">Garnish Live</string>
-    <string name="load_error">Garnish couldn’t load this page. Check your connection and try again.</string>
-</resources>
+<resources><string name="app_name">Garnish</string><string name="load_error">Garnish couldn’t connect. Check your connection and try again.</string></resources>
